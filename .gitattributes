@@ -2,3 +2,7 @@
 *.asm
 *.hack
 *.txt
+*.cmp
+*.tst
+*.vm
+*.xml
