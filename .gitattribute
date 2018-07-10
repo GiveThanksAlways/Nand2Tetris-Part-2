@@ -1,5 +1,4 @@
-*.jack
-*.asm
-*.hack
-*.jack
-*.txt
+*.jack	jack
+*.asm		assembly
+*.hack	hack
+*.txt		text
