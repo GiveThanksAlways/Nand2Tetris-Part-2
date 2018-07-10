@@ -1,11 +1,11 @@
-*.jack
-*.asm
-*.hack
-*.txt
-*.cmp
-*.tst
-*.vm
-*.xml
-*.md
-*.gif
-*.out
+*.jack	text
+*.asm		text
+*.hack	text
+*.txt		text
+*.cmp		text
+*.tst		text
+*.vm		text
+*.xml		text
+*.md		text
+*.gif		text
+*.out		text
