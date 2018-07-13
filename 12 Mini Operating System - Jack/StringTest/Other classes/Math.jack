@@ -27,7 +27,7 @@ class Math {
       let shiftedXpointer = shiftedX;
       let sumpointer = sum;
       let Ypointer = Y;
-	    return;
+	     return;
     }
 
     /** Returns the absolute value of x. */
