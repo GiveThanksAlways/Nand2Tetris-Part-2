@@ -10,22 +10,52 @@ class Sys {
 
     /** Performs all the initializations required by the OS. */
     function void init() {
+      // OS contract
+      // call all OS classes or initilaize OS  call init functions Math.init etc
+
+
+
+      // call Main.main()
+
+
+
+      // Hardware contract
+      // Start running at ROM[0]
+
+      // VM contract
+      // sp = 256
+      // call Sys.init
+
+      // Jack contract
+      // call Main.main()
+
+
       return;
     }
 
     /** Halts the program execution. */
     function void halt() {
+      // infinite loop
+      while( 1 < 2){
+        // do nothing inifite loop to halt the computer
+      }
+
       return;
     }
 
     /** Waits approximately duration milliseconds and returns.  */
     function void wait(int duration) {
+      // while loop with delay factor
+
       return;
     }
 
     /** Displays the given error code in the form "ERR<errorCode>",
      *  and halts the program's execution. */
     function void error(int errorCode) {
+      do Output.printString("ERR ");
+      do Output.printInt(errorCode);
+      do Sys.halt();
       return;
     }
 }
