@@ -185,7 +185,6 @@ class Output {
      *  each column is adding 16 to x in memory
      *  each row is adding 32 in memory
      */
-
     function void moveCursor(int i, int j) {
       var int value, k, address, currentValue;
       var int x, y;
