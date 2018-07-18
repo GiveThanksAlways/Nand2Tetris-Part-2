@@ -79,7 +79,7 @@ class Output {
         do Output.create(64,30,51,51,59,59,59,27,3,30,0,0);  // @
         do Output.create(63,30,51,51,24,12,12,0,12,12,0,0);  // ?
 
-        do Output.create(65,12,12,30,30,51,51,51,51,51,0,0);          // A ** TO BE FILLED **
+        do Output.create(65,12,12,30,30,51,63,51,51,51,0,0);          // A ** TO BE FILLED **
         do Output.create(66,31,51,51,51,31,51,51,51,31,0,0); // B
         do Output.create(67,28,54,35,3,3,3,35,54,28,0,0);    // C
         do Output.create(68,15,27,51,51,51,51,51,27,15,0,0); // D
@@ -187,15 +187,20 @@ class Output {
      */
 
     function void moveCursor(int i, int j) {
-      var int value, k, address;
+      var int value, k, address, currentValue;
       var int x, y;
       var Array bitmap;
+      var boolean oddColumn;
+      var int oddColumnBits, evenColumnBits;
       // update the cursor location
       let cursori = i;
       let cursorj = j;
       // get the x and y values
       let y = 11 * (i); // 253/11 = 23 rows
-      let x = 8  * (j); // 512/8  = 64 columns of 8 for each box
+      let x = 8  * (j) ; // 512/8  = 64 columns of 8 for each box
+
+      if(Output.mod(j,2) = 0 ){ let oddColumn = false;}
+      else{ let oddColumn = true;}
 
 
       let k = 0;
@@ -204,6 +209,21 @@ class Output {
         let address = (32 * (y+k)) + (x / 16); // (32 * y) + (x / 16);
         let bitmap = Output.getMap(32); // 32 is blank space so it erases it
         let value = bitmap[k];
+        let currentValue =  Memory.peek(screenStart + address); // get the 16 bit number already there
+        let evenColumnBits = currentValue - (currentValue / 256);
+        let oddColumnBits = currentValue - evenColumnBits;
+        if(oddColumn){
+          // if we have an odd column, then we are in the thousands so we multiply by 256
+          // 256 = 2^8 so it moves the digit over 8 times. And we add to what we already have
+          // if we are in an odd column then we erase the higher odd column numbers (the thousands)
+
+          let value = currentValue - (oddColumnBits * 256); // if we have ab then it sets b=0 or erases b
+
+        }else{
+           // gets the 100's or first 8 bit value
+          let value = currentValue - evenColumnBits;
+          let value = value*256;// moves the bits 8 over so that the odd column stays in the odd column
+        }
         do Memory.poke(screenStart + address,value);
 
         let k = k + 1;
@@ -218,9 +238,14 @@ class Output {
       var int value, k, i, j, address;
       var int x, y;
       var Array bitmap;
+      var int currentValue;
+      var boolean oddColumn;
       // get the location of the cursor
       let i = cursori;
       let j = cursorj;
+      // check for odd column i.e. j % 2
+      if(Output.mod(j,2) = 0 ){ let oddColumn = false;}
+      else{ let oddColumn = true;}
 
       let y = 11 * (i); // 253/11 = 23 rows
       let x = 8  * (j); // 512/8  = 64 columns of 8 for each box
@@ -228,45 +253,125 @@ class Output {
       let k = 0;
       while(k < 11){
         // get the address in RAM memory. Then get bitmap. Then change RAM value
-        let address = (32 * (y+k)) + (x / 16); // (32 * y) + (x / 16);
+        //let address = (32 * (y+k)) + (x / 16); // (32 * y) + (x / 16);
+        let address = (32 * (y+k)) + ((x) / 16);
         let bitmap = Output.getMap(c);
+        let currentValue =  Memory.peek(screenStart + address); // get the 16 bit number already there
         let value = bitmap[k];
+        /** If we are in a spot that is an odd column then we add to the other 8 bit value in front of it.
+        *   Basically its like the first letter a of ab is the first 8 bits and the second letter b is the
+        *   other 8 bits. In total it is 16 bits. The hack computer we have in nand2tetris uses 16 bit values
+        *   so odd column are like the thousands, and even columns are the hundreds. i.e. 111,000 if we add or subtract in the
+        *   100's then we don't affect the thousands and vice versa.
+        */
+        if(oddColumn){
+          // if we have an odd column, then we are in the thousands so we multiply by 256
+          // 256 = 2^8 so it moves the digit over 8 times. And we add to what we already have
+          let value = value * 256;
+        }
+        let value = value + currentValue;
         do Memory.poke(screenStart + address,value);
 
         let k = k + 1;
       }
-      // add the one column after printing to the cursor
+
+      // add the one column after printing to the char
+      //do Output.moveCursor(cursori, cursorj + 1);
       let cursorj = cursorj + 1; // add 1 column
+
       // if you hit the right side, reset the column to 0 and add a row
       if(cursorj > 63) { let cursorj = 0; let cursori = cursori + 1;} // cursori + 1 because we use rows for cursori
 
-      if(cursori > 22) { let cursori = 0;} // if you hit the bottom, go back to top x=0
+      if(cursori > 22) { let cursori = 0; let cursorj = 0;} // if you hit the bottom, go back to top x=0 and y = 0
       return;
     }
 
     /** displays the given string starting at the cursor location,
      *  and advances the cursor appropriately. */
     function void printString(String s) {
+      var int length, i;
+      var char letter;
+
+      let length = s.length();
+      let i = 0;
+      while(i< length){
+        let letter = s.charAt(i);
+        do Output.printChar(letter);
+
+        let i = i + 1;
+
+      }
+
       return;
     }
 
     /** Displays the given integer starting at the cursor location,
      *  and advances the cursor appropriately. */
     function void printInt(int i) {
+      var int digit, initialValue, tens, digitcount;
+      // if it is negative just print the - sign and do everything else with absolute value
+      if( i < 0){do Output.printChar(45);}
+      let i = Math.abs(i);
+      let initialValue = i;
+      let tens = 1;
+      do Output.printIntRecursion(i,tens, initialValue);
+
+      return;
+    }
+
+    function void printIntRecursion(int i,int tens, int initialValue){
+      var int digit;
+
+        /** get the digit. Then subtract and divde by 2 to move everthing over one
+        * ie 5643 % 10 = 3, 5643-3 = 5640, 5640/10 = 564 repeat, etc. and then 2 instead of 10
+        * because binary is base 2, decimal is base 10, but the same principle works for digits for both
+        */
+        if( i = 0){return;} // we are done so start printing
+        let digit = Output.mod(i,10); // 5643 % 10 = 3
+        let i = i - digit; // 5643 - 3 = 5640
+        let i = i / 10; // 5640 / 10 = 564
+        let digit = digit + 48; // add 48 to get ascii char code number
+        let tens = tens * 10;
+        // recursion part
+        if(tens < (initialValue + 1) ){
+          do Output.printIntRecursion(i,tens,initialValue);
+        }
+
+        do Output.printChar(digit);
+
       return;
     }
 
     /** Advances the cursor to the beginning of the next line. */
     function void println() {
-      let cursori = cursori + 11; // move down add 11
-      let cursorj = 0; // back to the beginning, or column 0
+      let cursori = cursori + 1; // add one row
+      let cursorj = 0; // go back to column 0
+      do Output.moveCursor(cursori,cursorj);
       return;
     }
 
     /** Moves the cursor one column back. */
     function void backSpace() {
-      let cursorj = cursorj - 8;
-
+      let cursorj = cursorj - 1;
+      do Output.moveCursor(cursori,cursorj);
       return;
     }
+
+
+    // mod function
+    function int mod(int value,int divededBy){
+      var int i, remainder;
+      let i = 0;
+      let remainder = value;
+      while((remainder) > (divededBy -1)){
+        if(divededBy = remainder){
+          let remainder = 0;
+          return remainder; // because it divided into it equally
+        }else{
+          let remainder = remainder - divededBy; // take one bite away
+        }
+      }
+      return remainder; // returns whats left. thus performing % or the modulo function
+    }
+
 }

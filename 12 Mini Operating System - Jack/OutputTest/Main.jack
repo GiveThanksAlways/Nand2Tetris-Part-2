@@ -21,6 +21,10 @@ class Main {
         do Output.moveCursor(22, 63);
         do Output.printChar(68);
         do Output.printChar(65);
+        // self test code start
+        
+
+        // self test code end
 
         do Output.moveCursor(2, 0);
         do Output.printString("0123456789");
