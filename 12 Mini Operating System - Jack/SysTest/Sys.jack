@@ -11,12 +11,15 @@ class Sys {
     /** Performs all the initializations required by the OS. */
     function void init() {
       do Memory.init();
-      do Array.init();
+
       do Math.init();
       do Screen.init();
-      do String.init();
+
       do Output.init();
       do Keyboard.init();
+      do Main.main();
+      do Sys.halt();
+      return;
     }
 
     /** Halts the program execution. */
@@ -24,13 +27,14 @@ class Sys {
       while(1 < 2){
         // do nothing. infinite loop to halt
       }
+      return;
     }
 
     /** Waits approximately duration milliseconds and returns.  */
     function void wait(int duration) {
       var int start,finish;
       let start = 0;
-      let finish = 50000;
+      let finish = 5000;
        while(start < finish){
          let start = start + 1;
        }
@@ -43,5 +47,6 @@ class Sys {
       do Output.printString("ERR ");
       do Output.printInt(errorCode);
       do Sys.halt();
+      return;
     }
 }
