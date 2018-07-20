@@ -331,28 +331,41 @@ def popASM(s,name):
     printarray(popASMarrayend)
   return
 
-import os
-items = os.listdir(".")
+#import os
+#items = os.listdir(".")
 
 #import glob
 #import fileinput
+import sys
 #for filename in glob.glob('*.vm'):
-for filename in items:
-    if filename.endswith("vm"):
-        content = []
+#for filename in items:
+    #if filename.endswith("vm"):
+
         #print(filename)
-        #filename = fileinput.input()
-        with open(filename) as f:
-            for line in f:
+#filename = fileinput.input()
+#print(filename)
+#print( fileinput.filename() )
+#with fileinput.input(files=('StaticTest.vm', 'BasicTest.vm', 'PointerTest.vm')) as f:
+#print(len(sys.argv))
+#print(sys.argv[0])
+# this will get all the number of files we are working with, then open each one individually
+for fileName in sys.argv:
+    # only open .vm files
+    if(fileName[-2:] == 'vm'):
+        #print(file)
+        with open(fileName) as file:
+            content = []
+            for line in file:
                 line = line.split('//', 1)[0]
                 line = line.rstrip()
                 content.append(line)
 
             content = [x.strip() for x in content]
             content[:] = [item for item in content if item != '']
-            print(content)
 
-            #filename = fileinput.filename()
+            print(content)
+            filename = fileName
+            #print(filename)
             output = open(filename[:filename.index('.')]+'.asm','w')
 
 
@@ -401,5 +414,6 @@ for filename in items:
             			popASM(command,filename[:filename.index('.')])
 
 
-    #print(filename[:filename.index('.')])
+            #print(filename[:filename.index('.')])
             output.close()
+            #fileinput.nextfile()
