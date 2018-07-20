@@ -9,7 +9,8 @@ pop this 1
 push argument 2
 pop this 2
 push pointer 0
-call Square.draw None
+call Square.draw 1
+pop temp 0
 push pointer 0
 return
 function Square.dispose 0
