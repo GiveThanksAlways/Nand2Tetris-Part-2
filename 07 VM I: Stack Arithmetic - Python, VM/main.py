@@ -332,70 +332,73 @@ def popASM(s,name):
   return
 
 
-import glob
+#import glob
+import fileinput
+#for filename in glob.glob('*.vm'):
+  
+content = []
+#print(filename)
+#filename = fileinput.input()
+#with open(filename) as f:
+for line in fileinput.input():
+    line = line.split('//', 1)[0]
+    line = line.rstrip()
+    content.append(line)
 
-for filename in glob.glob('*.vm'):
-  
-  content = []
-  #print(filename)
-  with open(filename) as f:
-      for line in f:
-          line = line.split('//', 1)[0]
-          line = line.rstrip()
-          content.append(line)
-      
-  content = [x.strip() for x in content]
-  content[:] = [item for item in content if item != '']
-  
-  output = open(filename[:filename.index('.')]+'.asm','w')
-  
-  
-  #1st pass
-  n=0
-  for command in content:
-    
-    #print(commandType(command))
-    #print(command)
-    
-    #print(arg1find(command))
-    #print(arg2find(command))
-    
-    # push assembly
-    if commandType(command) == 'C_PUSH':
-      # get arg to push onto stack
-      
-      pushitem(command,filename[:filename.index('.')])
-        
-      pushASM()
-    
-    elif commandType(command) == 'C_ARITHMETIC':
-      if 'add' in command:
-        addASM()
-      elif 'sub' in command:
-        subASM()
-      elif 'neg' in command:
-        negASM()
-      elif 'eq' in command:
-        eqASM(n)
-        n+=1
-      elif 'gt' in command:
-        gtASM(n)
-        n+=1
-      elif 'lt' in command:
-        ltASM(n)
-        n+=1
-      elif 'and' in command:
-        andASM()
-      elif 'or' in command:
-        orASM()
-      elif 'not' in command:
-        notASM()
-    elif commandType(command) == 'C_POP':
-      popASM(command,filename[:filename.index('.')])
-  
-  
-  #print(filename[:filename.index('.')])
-  output.close()
+content = [x.strip() for x in content]
+content[:] = [item for item in content if item != '']
+
+filename = fileinput.filename()
+output = open(filename[:filename.index('.')]+'.asm','w')
+
+
+
+#1st pass
+n=0
+for command in content:
+
+	#print(commandType(command))
+	#print(command)
+
+	#print(arg1find(command))
+	#print(arg2find(command))
+
+	# push assembly
+	if commandType(command) == 'C_PUSH':
+	# get arg to push onto stack
+
+		pushitem(command,filename[:filename.index('.')])
+	  
+		pushASM()
+
+	elif commandType(command) == 'C_ARITHMETIC':
+		if 'add' in command:
+		  addASM()
+		elif 'sub' in command:
+		  subASM()
+		elif 'neg' in command:
+		  negASM()
+		elif 'eq' in command:
+		  eqASM(n)
+		  n+=1
+		elif 'gt' in command:
+		  gtASM(n)
+		  n+=1
+		elif 'lt' in command:
+		  ltASM(n)
+		  n+=1
+		elif 'and' in command:
+		  andASM()
+		elif 'or' in command:
+		  orASM()
+		elif 'not' in command:
+		  notASM()
+		elif commandType(command) == 'C_POP':
+			popASM(command,filename[:filename.index('.')])
+
+
+#print(filename[:filename.index('.')])
+output.close()
   
   
       
