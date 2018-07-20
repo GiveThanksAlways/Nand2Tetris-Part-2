@@ -34,7 +34,7 @@ gt
 not
 not
 if-goto ifL0
-push argument 1
+push argument 0
 push local 0
 and
 push constant 0
