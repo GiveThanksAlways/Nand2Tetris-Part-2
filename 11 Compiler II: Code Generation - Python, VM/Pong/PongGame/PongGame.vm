@@ -10,7 +10,7 @@ push constant 230
 push constant 229
 push this 6
 push constant 7
-call Bat.new 6
+call Bat.new 4
 pop this 0
 push constant 253
 push constant 222
@@ -80,7 +80,7 @@ pop temp 0
 push constant 0
 return
 function PongGame.newInstance 0
-call PongGame.new
+call PongGame.new 0
 pop static 0
 push constant 0
 return
@@ -108,6 +108,7 @@ call Keyboard.keyPressed 0
 pop local 0
 push this 0
 call Bat.move 1
+pop temp 0
 push pointer 0
 call PongGame.moveBall 1
 pop temp 0
@@ -123,7 +124,7 @@ not
 if-goto ifL0
 push this 0
 push constant 1
-call Bat.setDirection None
+call Bat.setDirection 2
 goto ifL1
 label ifL0
 push local 0
@@ -133,7 +134,7 @@ not
 if-goto ifL2
 push this 0
 push constant 2
-call Bat.setDirection None
+call Bat.setDirection 2
 goto ifL3
 label ifL2
 push local 0
@@ -163,6 +164,7 @@ call Keyboard.keyPressed 0
 pop local 0
 push this 0
 call Bat.move 1
+pop temp 0
 push pointer 0
 call PongGame.moveBall 1
 pop temp 0
@@ -287,7 +289,8 @@ sub
 pop this 6
 push this 0
 push this 6
-call Bat.setWidth None
+call Bat.setWidth 2
+pop temp 0
 push this 4
 push constant 1
 add
