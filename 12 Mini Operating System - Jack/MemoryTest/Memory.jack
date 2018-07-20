@@ -50,10 +50,10 @@ class Memory {
      *  a reference to its base address. */
     function Array alloc(int size) {
       //var int localpointer;
-	//do Memory.poke(4,heapStart);
-	//let RAM = 0;
+    	//do Memory.poke(4,heapStart);
+    	//let RAM = 0;
 
-	//let RAM[4] = heapStart;
+    	//let RAM[4] = heapStart;
 
       //let localpointer = RAM[1];
       return Memory.allocRecursion(size,heapStart); // pops the value to temp0 b/c it is a function
@@ -83,10 +83,52 @@ class Memory {
       }
 
       if( ~(RAM[currentPointer+1] = null)) { // keep going until you hit the null in the LinkedList
+
         do Memory.allocRecursion(size, RAM[currentPointer+1]); // recursion call to run through LinkedList
       }
-
+      // if you got here then nothing was added so attemp defragmentation
+      do Memory.defragmentation(heapStart);
       return block;
+    }
+
+    function void defragmentation(int currentPointer){
+
+      var int nextPointer, currentBlockSize, blocktogethersize;
+      let currentBlockSize = RAM[currentPointer];
+      let nextPointer = RAM[currentPointer+1]; // heapstart is currrent pointer
+
+      if( ~(RAM[currentPointer+1] = null)) { // keep going until you hit the null in the LinkedList
+        let blocktogethersize = currentPointer + currentBlockSize;
+        do Memory.defragmentationCheck(blocktogethersize,currentPointer,nextPointer); // check this node against all others
+        do Memory.defragmentation(nextPointer); // now redo but for the next node so each node gets to be check against all other nodes. Each gets a turn.
+      }
+      return;
+    }
+
+    function void defragmentationCheck(int blocktogethersize, int checkPointer, int currentPointer){
+      var int nextPointer, currentBlockSize;
+      var int checkBlockSize;
+
+
+      let nextPointer = RAM[currentPointer+1]; // heapstart is currrent pointer
+      // check if current pointer plus block size is the same as the next pointer
+      // this would mean that the two available blocks are next to eachother so we can combine them
+      if( blocktogethersize = currentPointer){
+        // then they are together so we combine
+        let checkBlockSize = RAM[checkPointer];
+        let currentBlockSize = RAM[currentPointer];
+        let RAM[checkPointer] = checkBlockSize + currentBlockSize; // add both blocks together
+        let RAM[checkPointer+1] = RAM[currentPointer + 1]; // now that they are combined, the first block points to what the next guy was pointing to
+        //let RAM[currentPointer] = 0; // reset values
+        //let RAM[currentPointer+1] = 0; // reset values
+      }
+
+      // check the whole linked list to see if any blocks are by eachother
+      if( ~(RAM[currentPointer+1] = null)) {
+        do Memory.defragmentationCheck(blocktogethersize,checkPointer,nextPointer);  // check this node against all others
+      }
+
+      return;
     }
 
 
@@ -96,10 +138,11 @@ class Memory {
 
       if(~(RAM[currentPointer+1] = null)){
         do Memory.insert(nextPointer, segmentPointer);
+        return;
       }
       // means we are at null, now we can insert into the list
       let RAM[currentPointer+1] = segmentPointer; // change where null is
-      let RAM[segmentPointer]   = null; // now the inserted guy is null and he is pointed to by the last guy
+      let RAM[segmentPointer+1]   = null; // now the inserted guy is null and he is pointed to by the last guy
       return;
     }
 

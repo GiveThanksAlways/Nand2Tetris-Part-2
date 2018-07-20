@@ -131,7 +131,128 @@ push that 0
 call Memory.allocRecursion 2
 pop temp 0
 label IF_FALSE1
+push static 0
+call Memory.defragmentation 1
+pop temp 0
 push local 4
+return
+function Memory.defragmentation 3
+push argument 0
+push static 4
+add
+pop pointer 1
+push that 0
+pop local 1
+push argument 0
+push constant 1
+add
+push static 4
+add
+pop pointer 1
+push that 0
+pop local 0
+push argument 0
+push constant 1
+add
+push static 4
+add
+pop pointer 1
+push that 0
+push constant 0
+eq
+not
+if-goto IF_TRUE0
+goto IF_FALSE0
+label IF_TRUE0
+push argument 0
+push local 1
+add
+pop local 2
+push local 2
+push argument 0
+push local 0
+call Memory.defragmentationCheck 3
+pop temp 0
+push local 0
+call Memory.defragmentation 1
+pop temp 0
+label IF_FALSE0
+push constant 0
+return
+function Memory.defragmentationCheck 3
+push argument 2
+push constant 1
+add
+push static 4
+add
+pop pointer 1
+push that 0
+pop local 0
+push argument 0
+push argument 2
+eq
+if-goto IF_TRUE0
+goto IF_FALSE0
+label IF_TRUE0
+push argument 1
+push static 4
+add
+pop pointer 1
+push that 0
+pop local 2
+push argument 2
+push static 4
+add
+pop pointer 1
+push that 0
+pop local 1
+push argument 1
+push static 4
+add
+push local 2
+push local 1
+add
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push argument 1
+push constant 1
+add
+push static 4
+add
+push argument 2
+push constant 1
+add
+push static 4
+add
+pop pointer 1
+push that 0
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+label IF_FALSE0
+push argument 2
+push constant 1
+add
+push static 4
+add
+pop pointer 1
+push that 0
+push constant 0
+eq
+not
+if-goto IF_TRUE1
+goto IF_FALSE1
+label IF_TRUE1
+push argument 0
+push argument 1
+push local 0
+call Memory.defragmentationCheck 3
+pop temp 0
+label IF_FALSE1
+push constant 0
 return
 function Memory.insert 1
 push argument 0
@@ -159,6 +280,8 @@ push local 0
 push argument 1
 call Memory.insert 2
 pop temp 0
+push constant 0
+return
 label IF_FALSE0
 push argument 0
 push constant 1
@@ -171,6 +294,8 @@ pop pointer 1
 push temp 0
 pop that 0
 push argument 1
+push constant 1
+add
 push static 4
 add
 push constant 0

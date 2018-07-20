@@ -1,0 +1,380 @@
+// This file is part of www.nand2tetris.org
+// and the book "The Elements of Computing Systems"
+// by Nisan and Schocken, MIT Press.
+// File name: projects/12/Math.jack
+
+/**
+ * A library of commonly used mathematical functions.
+ * Note: Jack compilers implement multiplication and division using OS method calls.
+ */
+class Math {
+
+
+    // make static so all classes/functions can view mathematical
+    static Array binary, shiftedX, sum, Y;
+    static Array binaryvalues;
+    static int binarypointer, shiftedXpointer, sumpointer, Ypointer;
+    static int binaryvaluespointer;
+
+    static int total;
+
+    /** Initializes the library. */
+    function void init() {
+
+      let binary = Array.new(16);
+      let shiftedX = Array.new(16);
+      let sum = Array.new(16);
+      let Y = Array.new(16);
+
+      let binarypointer = binary;
+      let shiftedXpointer = shiftedX;
+      let sumpointer = sum;
+      let Ypointer = Y;
+
+      let binaryvalues = Array.new(16);
+      let binaryvalues[0] = 1;
+      let binaryvalues[1] = 2;
+      let binaryvalues[2] = 4;
+      let binaryvalues[3] = 8;
+      let binaryvalues[4] = 16;
+      let binaryvalues[5] = 32;
+      let binaryvalues[6] = 64;
+      let binaryvalues[7] = 128;
+      let binaryvalues[8] = 256;
+      let binaryvalues[9] = 512;
+      let binaryvalues[10] = 1024;
+      let binaryvalues[11] = 2048;
+      let binaryvalues[12] = 4096;
+      let binaryvalues[13] = 8192;
+      let binaryvalues[14] = 16384;
+      let binaryvalues[15] = 0;//32767
+      let binaryvaluespointer = binaryvalues;
+
+	    return;
+    }
+
+    /** Returns the absolute value of x. */
+    function int abs(int x) {
+      // check if x is negative
+      if(x < 0){
+        let x = x - x - x; // (-x)-(-x) = -x + x = 0 then 0 - (-x) = x
+        return x;
+      }
+
+      return x;
+    }
+
+
+    function int bit(int value, int j){
+      var int mask, position;
+      var int bit;
+    	var boolean loop;
+      var int temp;
+
+      var int decimalCheck;
+      let decimalCheck = binaryvalues[j]; // get the 2,4,8  or the 2^? value
+      if((value & decimalCheck) = decimalCheck){
+        return 1;
+      }else{
+        return 0;
+      }
+
+
+/** beggining of old comment
+
+    	let position = -1; // acces first element when +1 happens in for loop
+    	let loop = true;
+    	while (loop) {
+    	    let position = position + 1;
+    	    let mask = Math.nextMask(mask);
+
+      	    if (position < 16) {
+                if(position = j){
+        	        if (~((value & mask) = 0)) {
+        	            //do Memory.poke(8000 + position, 1);
+                        let bit = 1;
+           	        }
+        	        else {
+        	            //do Memory.poke(8000 + position, 0);
+                        let bit = 0;
+          	        }
+                    let loop = false; // if we found j, just quit out
+      	         }
+            }
+      	    else {
+      	        let loop = false;
+      	    }
+          }
+
+end of old comment */
+
+    	//return bit;
+    }
+
+
+    /** Returns the next mask (the mask that should follow the given mask). */
+    function int nextMask(int mask) {
+    	if (mask = 0) {
+    	    return 1;
+    	}
+    	else {
+	    //return mask * 2;
+		  // need to add instead of multiply
+		  return (mask + mask);
+    	}
+    }
+
+    /** Returns the product of x and y.
+     *  When a Jack compiler detects the multiplication operator '*' in the
+     *  program's code, it handles it by invoking this method. In other words,
+     *  the Jack expressions x*y and multiply(x,y) return the same value.
+     */
+    function int multiply(int x, int y) {
+      var int i,j, carry, ans;
+      var boolean xneg, yneg;
+    	var int shiftedXint, sumInt;
+      var int fastSum;
+      let xneg = false;
+      let yneg = false;
+      if( x < 0){
+        let x = Math.abs(x);
+        let xneg = true;
+      }
+      if( y < 0){
+        let y = Math.abs(y);
+        let yneg = true;
+      }
+
+      //let sumInt = 0;
+	//let sum = ConvertToBinary.convert(sumInt);
+	//let shiftedXint = x;
+  //let shiftedX = ConvertToBinary.convert(x,shiftedXpointer);
+	//let Y  = ConvertToBinary.convert(y,Ypointer);
+	let j = 0;
+	let i = 0;
+
+
+	while ( j < 16){
+		if( Math.bit(y,j) = 1 ){ // Y[j] = 1
+
+		  let i = 0;
+			while ( i < 16 ){
+				//let sum[i] = sum[i] + shiftedX[i] + carry;
+        if(Math.bit(x,i) = 1) {
+          let fastSum = fastSum + binaryvalues[i];
+        }
+
+				let i = i + 1;
+			}
+
+		}
+
+		// shiftedX = shiftexX * 2
+		// this will shift it 2 over
+		//let shiftedXint = ConvertToBinary.binaryToInt(shiftedX);
+		//let shiftedXint = shiftedXint + shiftedXint;
+    let x = x + x; // multiply by 2 to shift it over two the binary digit
+		//let shiftedX = ConvertToBinary.convert(shiftedXint,shiftedXpointer);
+		let j = j + 1;
+
+	}
+
+	//let ans = ConvertToBinary.binaryToInt(sum);
+  let ans = fastSum;
+  if( xneg | yneg) {
+    if( xneg & yneg){
+      // do  nothing
+    }
+    else{let ans = ans - ans - ans;}
+  }
+  //if(xneg){let ans = ans - ans - ans;}
+  //if(yneg){let ans = ans - ans - ans;}
+
+  // reset all arrays to be filled with 0
+  /**let i = 0;
+  while (i<16){
+    let binary[i] = 0;
+    let shiftedX[i] = 0;
+    let sum[i] = 0;
+    let Y[i] = 0;
+    let i = i + 1;
+  } */
+
+  return ans;
+
+    }
+
+
+    /** Returns the integer part of x/y.
+     *  When a Jack compiler detects the multiplication operator '/' in the
+     *  program's code, it handles it by invoking this method. In other words,
+     *  the Jack expressions x/y and divide(x,y) return the same value.
+     */
+    function int divide(int x, int y) {
+      var int q;
+      var boolean xneg, yneg;
+      var int qandy;
+
+      //let xneg = false;
+      //let yneg = false;
+      if( x < 0){
+        let x = Math.abs(x);
+        let xneg = true;
+      }
+      if( y < 0){
+        let y = Math.abs(y);
+        let yneg = true;
+      }
+
+      if( y > x){return 0;}
+
+      let q = Math.divide(x, (y + y));
+
+      let qandy = q * y;
+      if((x - (qandy + qandy)) < y){
+
+        return Math.returnRightSign((q + q), xneg, yneg);//return (q + q);
+      }
+      else {
+        return Math.returnRightSign((q + q) + 1, xneg, yneg);//return ( (q + q) + 1 );
+      }
+/**
+      if( y > x ){ return 0;}
+      let q = Math.divide(x, (y + y) );
+      if((x - (2 * (q * y))) < y){
+        return Math.returnRightSign((q + q), xneg, yneg);
+      }
+      else {return Math.returnRightSign((q + q) + 1, xneg, yneg);}
+*/
+
+
+
+    }
+
+    // checks if multiplied by positive or negative number
+    function int returnRightSign(int ans,boolean xneg, boolean yneg){
+
+      if( xneg | yneg) {
+        if( xneg & yneg){
+          // do  nothing
+        }
+        else{let ans = ans - ans - ans;}
+      }
+      //if(xneg){let ans = ans - ans - ans;}
+      //if(yneg){let ans = ans - ans - ans;}
+      return ans;
+
+    }
+
+    /** Returns the integer part of the square root of x. */
+    function int sqrt(int x) {
+      // binary search
+
+      var int y, jj, n;
+      var int temp2j, temp2, temp3;
+      var boolean start;
+      let n = 16;
+
+      let y = 0;
+      let jj = (n/2)-1; // max value is 2^ 7 or 2^ (n/2)
+
+      let start = true;
+
+      while(jj > -1){
+        //do Output.printInt(999);
+        //do Output.printInt(777);
+        //do Output.println();
+        let temp2j = 0;
+        let temp2 = 0;
+        //do Output.printInt(jj);
+        //do Output.println();
+
+        let temp2j = y + Math.power(2,jj);
+        //if(start){ let temp2j = 256;} // (256 ^ 2) -1
+        //do Output.printInt(Math.power(2,jj));
+        //do Output.printInt(temp2j);
+        //do Output.println();
+        //let temp2 = Math.multiply(10,10);
+        //let temp2 = Math.power(10,2);
+
+        let temp2 = Math.squared(temp2j);
+        if (temp2j > (181)){let temp2 = 32767;} // wait until smaller
+        //let temp2 = 16385;
+        //if(start){ let temp2 = 65535; let start = false;} // (2^8) -1
+        //let temp2 = Math.squared(256) -1 ;
+        //do Output.printInt(temp2);
+        //do Output.println();
+
+        if(temp2 < x){
+          let y = temp2j;
+          //do Output.printInt(222);
+          //do Output.println();
+          //do Output.printInt(y);
+          //do Output.println();
+          //do Output.println();
+        }
+        if(temp2 = x){
+          if(~(temp2 = 32767)){let y = temp2j;} // do nothing
+
+          //do Output.printInt(555);
+        }
+        //do Output.printInt(y);
+        //do Output.println();
+
+        //do Output.printInt(888);
+        let jj = jj - 1;
+
+      }
+      return y;
+
+    }
+
+    function int squared(int a){
+      // calculate a^2
+      var int i, total;
+      let i = 1;
+      let total = a;
+      while(i < a){
+        let total = total + a;
+        let i = i + 1;
+      }
+      return total;
+
+    }
+
+    // a ^ b
+    function int power(int a, int b){
+      var int i, k;
+      let i = 1;
+      let total = a;
+      while(i<b){
+
+        // this code perfroms a * a how many times you need it
+        let k = 1;
+        while(k<a){
+
+          let total = total + total;
+          let k = k + 1;
+        }
+        //let total = Math.multiply(total,a);
+        let i = i + 1;
+      }
+      if( b = 0){ let total = 1;} // anything to the zero power is 1
+      //if( start){ let total = total -1;}// starting at (2^n) -1
+      return total;
+
+    }
+    /** Returns the greater number. */
+    function int max(int a, int b) {
+
+      if( a > b){ return a;}
+      else{ return b;}
+    }
+
+    /** Returns the smaller number. */
+    function int min(int a, int b) {
+      if( a < b){ return a;}
+      else{ return b;}
+    }
+
+}
