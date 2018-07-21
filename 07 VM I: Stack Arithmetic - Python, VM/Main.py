@@ -407,6 +407,7 @@ for fileName in sys.argv:
             		pushASM()
 
             	elif commandType(command) == 'C_ARITHMETIC':
+
             		if 'add' in command:
             		  addASM()
             		elif 'sub' in command:
@@ -428,8 +429,8 @@ for fileName in sys.argv:
             		  orASM()
             		elif 'not' in command:
             		  notASM()
-            		elif commandType(command) == 'C_POP':
-            			popASM(command,filename[:filename.index('.')])
+            	elif commandType(command) == 'C_POP':
+                    popASM(command,filename[:filename.index('.')])
 
 
             #print(filename[:filename.index('.')])
