@@ -371,16 +371,19 @@ for fileName in sys.argv:
 
             #print(content)
             filename = daRealFilename
-            print(filename)
-            print(daRealpath)
-            daRealpath = daRealpath[daRealpath.index(filename):]
-            print(daRealpath)
+            #print(filename)
+            #print(daRealpath)
+            #daRealpath = daRealpath[daRealpath.index(filename):]
+            #print(daRealpath)
+            #print(os.path.dirname(filename)   )
+            #print(os.join(os.path.dirname(filename),filename))
             #filename = str(p) #+ fileName
             #filename = daRealFilename
             #print(filename)
             #print(os.path.abspath(filename))
             #print(join(os.getcwd(),p))
             output = open(filename[:filename.index('.')]+'.asm','w')
+            #print(filename[:filename.index('.')]+'.asm')
             #output = open(daRealpath[:dareal.index('.')]+'.asm','w')
 
 
