@@ -356,8 +356,8 @@ for fileName in sys.argv:
         #print(file)
         #print(os.getcwd())
         from pathlib import Path
-        daRealpath = Path(fileName).resolve()
-        #daRealFilename = fileName
+        daRealpath = str(Path(fileName).resolve())
+        daRealFilename = fileName
         #print(p)
         with open(fileName) as file:
             content = []
@@ -370,7 +370,11 @@ for fileName in sys.argv:
             content[:] = [item for item in content if item != '']
 
             #print(content)
-            filename = str(daRealpath)
+            filename = daRealFilename
+            print(filename)
+            print(daRealpath)
+            daRealpath = daRealpath[daRealpath.index(filename):]
+            print(daRealpath)
             #filename = str(p) #+ fileName
             #filename = daRealFilename
             #print(filename)

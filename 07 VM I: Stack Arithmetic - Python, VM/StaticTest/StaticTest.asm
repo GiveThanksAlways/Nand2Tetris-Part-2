@@ -19,14 +19,14 @@ A=M
 M=D
 @SP
 M=M+1
-@StaticTest.3
+@StaticTest/StaticTest.3
 D=M
 @SP
 A=M
 M=D
 @SP
 M=M+1
-@StaticTest.1
+@StaticTest/StaticTest.1
 D=M
 @SP
 A=M
@@ -43,7 +43,7 @@ D=D-M
 @SP
 A=M-1
 M=D
-@StaticTest.8
+@StaticTest/StaticTest.8
 D=M
 @SP
 A=M
