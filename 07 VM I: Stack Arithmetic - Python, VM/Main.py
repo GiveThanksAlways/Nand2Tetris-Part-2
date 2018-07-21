@@ -337,6 +337,7 @@ def popASM(s,name):
 #import glob
 #import fileinput
 import sys
+import os
 #for filename in glob.glob('*.vm'):
 #for filename in items:
     #if filename.endswith("vm"):
@@ -353,6 +354,10 @@ for fileName in sys.argv:
     # only open .vm files
     if(fileName[-2:] == 'vm'):
         #print(file)
+        #print(os.getcwd())
+        from pathlib import Path
+        p = Path(fileName).resolve()
+        #print(p)
         with open(fileName) as file:
             content = []
             for line in file:
@@ -363,9 +368,9 @@ for fileName in sys.argv:
             content = [x.strip() for x in content]
             content[:] = [item for item in content if item != '']
 
-            print(content)
-            filename = fileName
-            #print(filename)
+            #print(content)
+            filename = str(p) #+ fileName
+            print(filename)
             output = open(filename[:filename.index('.')]+'.asm','w')
 
 
