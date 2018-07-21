@@ -356,7 +356,8 @@ for fileName in sys.argv:
         #print(file)
         #print(os.getcwd())
         from pathlib import Path
-        p = Path(fileName).resolve()
+        daRealpath = Path(fileName).resolve()
+        #daRealFilename = fileName
         #print(p)
         with open(fileName) as file:
             content = []
@@ -369,9 +370,14 @@ for fileName in sys.argv:
             content[:] = [item for item in content if item != '']
 
             #print(content)
-            filename = str(p) #+ fileName
-            print(filename)
+            filename = str(daRealpath)
+            #filename = str(p) #+ fileName
+            #filename = daRealFilename
+            #print(filename)
+            #print(os.path.abspath(filename))
+            #print(join(os.getcwd(),p))
             output = open(filename[:filename.index('.')]+'.asm','w')
+            #output = open(daRealpath[:dareal.index('.')]+'.asm','w')
 
 
 
