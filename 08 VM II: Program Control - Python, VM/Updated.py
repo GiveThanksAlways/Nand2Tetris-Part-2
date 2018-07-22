@@ -515,10 +515,21 @@ import sys
 import os
 import glob
 from pathlib import Path
+directoryName = sys.argv[1]
+#print(directoryName)
+#os.chdir(Path(directoryName).resolve())
+
+
 daRealpath = str(Path(sys.argv[1]).resolve())
-daRealpath = str(daRealpath.rpartition("/")[0])
-os.chdir(daRealpath) # changes the directory to the StaticsTest folder
+#print(os.path.normpath(daRealpath))
+#print(os.path.dirname(Path(sys.argv[1]).resolve()))
+#daRealpath = str(daRealpath.rpartition("/")[0])
+#print(daRealpath)
+#os.chdir(daRealpath) # changes the directory to the StaticsTest folder
+os.chdir(os.path.realpath(directoryName))
 ASMFileName = str(os.getcwd())
+#print(os.getcwd())
+#print(os.getcwd())
 ASMFileName = ASMFileName.rpartition("/")[2]
 
 items = os.listdir(".") # gets all of the files in the directory
@@ -533,7 +544,8 @@ for item in items:
 
 #output = open('StaticsTest.asm','w')
 output = open(ASMFileName+ ".asm",'w')
-
+currentFunction1 = 'Sys.init'
+writeInit()
 
 #for filename in glob.glob('*.vm'):
 for filename in onlyVM:
@@ -553,8 +565,7 @@ for filename in onlyVM:
 
   #1st pass
   n=2
-  currentFunction1 = 'Sys.init'
-  writeInit()
+
 
   for command in content:
     arg0 = getarg0(command)
