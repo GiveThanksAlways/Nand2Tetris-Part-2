@@ -543,9 +543,8 @@ for item in items:
     if(item.endswith(".vm")):
         onlyVM.append(item)
 
-#print(onlyVM)
+print(onlyVM)
 #for filename in glob.glob('*.vm'):
-output = open(ASMFileName+ ".asm",'w')
 
 for fileName in items:
     if(fileName[-2:] == 'vm'):
@@ -565,7 +564,7 @@ for fileName in items:
             filename = daRealFilename
 
             #output = open(filename[:filename.index('.')]+'.asm','w')
-            output = open(ASMFileName+ ".asm",'a+')
+            output = open(ASMFileName+ ".asm",'w')
             #1st pass
             n=2
             currentFunction1 = 'Sys.init'
