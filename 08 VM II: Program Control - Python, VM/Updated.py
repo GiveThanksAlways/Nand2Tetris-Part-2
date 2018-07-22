@@ -516,6 +516,7 @@ import os
 import glob
 from pathlib import Path
 daRealpath = str(Path(sys.argv[1]).resolve())
+daRealpath = str(daRealpath.rpartition("/")[0])
 os.chdir(daRealpath) # changes the directory to the StaticsTest folder
 ASMFileName = str(os.getcwd())
 ASMFileName = ASMFileName.rpartition("/")[2]
@@ -559,7 +560,7 @@ for filename in onlyVM:
     arg0 = getarg0(command)
     arg1 = getarg1(command)
     arg2 = getarg2(command)
-    print(commandType(command))
+    #print(commandType(command))
     #print(command)
     #print(arg0)
     #print(arg1)
