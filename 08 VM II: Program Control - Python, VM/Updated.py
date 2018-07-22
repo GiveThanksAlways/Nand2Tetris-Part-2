@@ -527,6 +527,7 @@ daRealpath = str(Path(sys.argv[1]).resolve())
 #print(daRealpath)
 #os.chdir(daRealpath) # changes the directory to the StaticsTest folder
 # if the input ends with .vm then the input is a file. So change the directory to the directory of that file
+InitVM = False
 if(sys.argv[1].endswith(".vm")):
     #print("run for your life")
     #print(os.path.dirname(Path(sys.argv[1]).resolve()))
@@ -536,6 +537,7 @@ if(sys.argv[1].endswith(".vm")):
 else:
     # if the input is a directory, then we change to that directory
     os.chdir(os.path.realpath(directoryName))
+    InitVM = True
 ASMFileName = str(os.getcwd())
 #print(os.getcwd())
 #print(os.getcwd())
@@ -553,8 +555,10 @@ for item in items:
 
 #output = open('StaticsTest.asm','w')
 output = open(ASMFileName+ ".asm",'w')
-currentFunction1 = 'Sys.init'
-writeInit()
+
+if(InitVM):
+    currentFunction1 = 'Sys.init'
+    writeInit()
 
 #for filename in glob.glob('*.vm'):
 for filename in onlyVM:
@@ -570,11 +574,11 @@ for filename in onlyVM:
   content = [x.strip() for x in content]
   content[:] = [item for item in content if item != '']
 
-
+  print(content)
 
   #1st pass
   n=2
-
+  currentFunction1 = 'main'
 
   for command in content:
     arg0 = getarg0(command)
