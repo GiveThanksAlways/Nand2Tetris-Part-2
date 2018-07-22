@@ -526,7 +526,16 @@ daRealpath = str(Path(sys.argv[1]).resolve())
 #daRealpath = str(daRealpath.rpartition("/")[0])
 #print(daRealpath)
 #os.chdir(daRealpath) # changes the directory to the StaticsTest folder
-os.chdir(os.path.realpath(directoryName))
+# if the input ends with .vm then the input is a file. So change the directory to the directory of that file
+if(sys.argv[1].endswith(".vm")):
+    #print("run for your life")
+    #print(os.path.dirname(Path(sys.argv[1]).resolve()))
+    daRealpath = str(daRealpath.rpartition("/")[0])
+    #print(daRealpath)
+    os.chdir(daRealpath)
+else:
+    # if the input is a directory, then we change to that directory
+    os.chdir(os.path.realpath(directoryName))
 ASMFileName = str(os.getcwd())
 #print(os.getcwd())
 #print(os.getcwd())
