@@ -104,8 +104,3 @@ goto whileL2
 label whileL3
 push constant 0
 return
-
-
-
-
-

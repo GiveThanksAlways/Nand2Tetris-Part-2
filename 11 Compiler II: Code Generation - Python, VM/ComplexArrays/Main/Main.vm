@@ -79,7 +79,7 @@ pop pointer 1
 push that 0
 sub
 push constant 2
-call Main.double None
+call Main.double 1
 sub
 push constant 1
 add
@@ -403,7 +403,8 @@ not
 if-goto ifL0
 push local 0
 push constant 10
-call Main.fill None
+call Main.fill 2
+pop temp 0
 push local 0
 push constant 3
 add
@@ -467,8 +468,7 @@ push constant 101
 call String.appendChar 2
 push constant 115
 call String.appendChar 2
-push constant 116
-call String.appendChar 2
+push constantcall call String.appendChar 2
 push constant 32
 call String.appendChar 2
 push constant 52

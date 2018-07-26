@@ -1,0 +1,560 @@
+function Math.init 0
+push constant 16
+call Array.new 1
+pop static 0
+push constant 16
+call Array.new 1
+pop static 1
+push constant 16
+call Array.new 1
+pop static 2
+push constant 16
+call Array.new 1
+pop static 3
+push static 0
+pop static 4
+push static 1
+pop static 5
+push static 2
+pop static 6
+push static 3
+pop static 7
+push constant 0
+return
+function Math.abs 0
+push argument 0
+push constant 0
+lt
+not
+if-goto ifL0
+push argument 0
+push argument 0
+push argument 0
+sub
+sub
+pop argument 0
+push argument 0
+return
+goto ifL1
+label ifL0
+label ifL1
+push argument 0
+return
+function Math.multiply 8
+push constant 0
+pop local 4
+push constant 0
+pop local 5
+push argument 0
+push constant 0
+lt
+not
+if-goto ifL2
+push argument 0
+call Math.abs 1
+pop argument 0
+push constant 1
+neg
+pop local 4
+goto ifL3
+label ifL2
+label ifL3
+push argument 1
+push constant 0
+lt
+not
+if-goto ifL4
+push argument 1
+call Math.abs 1
+pop argument 1
+push constant 1
+neg
+pop local 5
+goto ifL5
+label ifL4
+label ifL5
+push constant 0
+pop local 7
+push argument 0
+push static 5
+call ConvertToBinary.convert None
+pop static 1
+push argument 1
+push static 7
+call ConvertToBinary.convert None
+pop static 3
+push constant 0
+pop local 1
+push constant 0
+pop local 0
+label whileL0
+push local 1
+push constant 16
+lt
+not
+if-goto whileL1
+push static 3
+push local 1
+add
+pop pointer 1
+push that 0
+push constant 1
+eq
+not
+if-goto ifL6
+push constant 0
+pop local 2
+push constant 0
+pop local 0
+label whileL2
+push local 0
+push constant 16
+lt
+not
+if-goto whileL3
+push static 2
+push local 0
+add
+push static 2
+push local 0
+add
+pop pointer 1
+push that 0
+push static 1
+push local 0
+add
+pop pointer 1
+push that 0
+push local 2
+add
+add
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push constant 0
+pop local 2
+push static 2
+push local 0
+add
+pop pointer 1
+push that 0
+push constant 2
+eq
+not
+if-goto ifL7
+push constant 1
+pop local 2
+push static 2
+push local 0
+add
+push constant 0
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+goto ifL8
+label ifL7
+label ifL8
+push static 2
+push local 0
+add
+pop pointer 1
+push that 0
+push constant 3
+eq
+not
+if-goto ifL9
+push constant 1
+pop local 2
+push static 2
+push local 0
+add
+push constant 1
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+goto ifL10
+label ifL9
+label ifL10
+push local 0
+push constant 1
+add
+pop local 0
+goto whileL2
+label whileL3
+goto ifL11
+label ifL6
+label ifL11
+push static 1
+call ConvertToBinary.binaryToInt None
+pop local 6
+push local 6
+push local 6
+add
+pop local 6
+push local 6
+push static 5
+call ConvertToBinary.convert None
+pop static 1
+push local 1
+push constant 1
+add
+pop local 1
+goto whileL0
+label whileL1
+push static 2
+call ConvertToBinary.binaryToInt None
+pop local 3
+push local 4
+not
+if-goto ifL12
+push local 3
+push local 3
+push local 3
+sub
+sub
+pop local 3
+goto ifL13
+label ifL12
+label ifL13
+push local 5
+not
+if-goto ifL14
+push local 3
+push local 3
+push local 3
+sub
+sub
+pop local 3
+goto ifL15
+label ifL14
+label ifL15
+push constant 0
+pop local 0
+label whileL4
+push local 0
+push constant 16
+lt
+not
+if-goto whileL5
+push static 0
+push local 0
+add
+push constant 0
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 1
+push local 0
+add
+push constant 0
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 2
+push local 0
+add
+push constant 0
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push static 3
+push local 0
+add
+push constant 0
+pop temp 0
+pop pointer 1
+push temp 0
+pop that 0
+push local 0
+push constant 1
+add
+pop local 0
+goto whileL4
+label whileL5
+push local 3
+return
+function Math.divide 3
+push argument 0
+push constant 0
+lt
+not
+if-goto ifL16
+push argument 0
+call Math.abs 1
+pop argument 0
+push constant 1
+neg
+pop local 1
+goto ifL17
+label ifL16
+label ifL17
+push argument 1
+push constant 0
+lt
+not
+if-goto ifL18
+push argument 1
+call Math.abs 1
+pop argument 1
+push constant 1
+neg
+pop local 2
+goto ifL19
+label ifL18
+label ifL19
+push argument 1
+push argument 0
+gt
+not
+if-goto ifL20
+push constant 0
+return
+goto ifL21
+label ifL20
+label ifL21
+push argument 0
+push argument 1
+push argument 1
+add
+call Math.divide 2
+pop local 0
+push argument 0
+push constant 2
+push local 0
+push argument 1
+call Math.multiply 2
+call Math.multiply 2
+sub
+push argument 1
+lt
+not
+if-goto ifL22
+push local 0
+push local 0
+add
+push local 1
+push local 2
+call Math.returnRightSign 3
+return
+goto ifL23
+label ifL22
+push local 0
+push local 0
+add
+push constant 1
+add
+push local 1
+push local 2
+call Math.returnRightSign 3
+return
+label ifL23
+function Math.returnRightSign 0
+push argument 1
+not
+if-goto ifL24
+push argument 0
+push argument 0
+push argument 0
+sub
+sub
+pop argument 0
+goto ifL25
+label ifL24
+label ifL25
+push argument 2
+not
+if-goto ifL26
+push argument 0
+push argument 0
+push argument 0
+sub
+sub
+pop argument 0
+goto ifL27
+label ifL26
+label ifL27
+push argument 0
+return
+function Math.sqrt 7
+push constant 16
+pop local 2
+push constant 0
+pop local 0
+push local 2
+push constant 2
+call Math.divide 2
+push constant 1
+sub
+pop local 1
+push constant 1
+neg
+pop local 6
+label whileL6
+push local 1
+push constant 1
+neg
+gt
+not
+if-goto whileL7
+push constant 0
+pop local 3
+push constant 0
+pop local 4
+push local 0
+push constant 2
+push local 1
+call Math.power 2
+add
+pop local 3
+push local 3
+call Math.squared 1
+pop local 4
+push local 3
+push constant 181
+gt
+not
+if-goto ifL28
+push constant 32767
+pop local 4
+goto ifL29
+label ifL28
+label ifL29
+push local 4
+push argument 0
+lt
+not
+if-goto ifL30
+push local 3
+pop local 0
+goto ifL31
+label ifL30
+label ifL31
+push local 4
+push argument 0
+eq
+not
+if-goto ifL32
+push local 4
+push constant 32767
+eq
+not
+not
+if-goto ifL33
+push local 3
+pop local 0
+goto ifL34
+label ifL33
+label ifL34
+goto ifL35
+label ifL32
+label ifL35
+push local 1
+push constant 1
+sub
+pop local 1
+goto whileL6
+label whileL7
+push local 0
+return
+function Math.squared 2
+push constant 1
+pop local 0
+push argument 0
+pop local 1
+label whileL8
+push local 0
+push argument 0
+lt
+not
+if-goto whileL9
+push local 1
+push argument 0
+add
+pop local 1
+push local 0
+push constant 1
+add
+pop local 0
+goto whileL8
+label whileL9
+push local 1
+return
+function Math.power 2
+push constant 1
+pop local 0
+push argument 0
+pop static 8
+label whileL10
+push local 0
+push argument 1
+lt
+not
+if-goto whileL11
+push constant 1
+pop local 1
+label whileL12
+push local 1
+push argument 0
+lt
+not
+if-goto whileL13
+push static 8
+push static 8
+add
+pop static 8
+push local 1
+push constant 1
+add
+pop local 1
+goto whileL12
+label whileL13
+push local 0
+push constant 1
+add
+pop local 0
+goto whileL10
+label whileL11
+push argument 1
+push constant 0
+eq
+not
+if-goto ifL36
+push constant 1
+pop static 8
+goto ifL37
+label ifL36
+label ifL37
+push static 8
+return
+function Math.max 0
+push argument 0
+push argument 1
+gt
+not
+if-goto ifL38
+push argument 0
+return
+goto ifL39
+label ifL38
+push argument 1
+return
+label ifL39
+function Math.min 0
+push argument 0
+push argument 1
+lt
+not
+if-goto ifL40
+push argument 0
+return
+goto ifL41
+label ifL40
+push argument 1
+return
+label ifL41
