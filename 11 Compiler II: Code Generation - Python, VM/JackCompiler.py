@@ -180,15 +180,14 @@ for filename in onlyOS:
 
 
 
+os.chdir("..") # go up one to normal directory
 
 # now we parse the input now that we have the OS clases in the symboltable
-
-
 directoryName = sys.argv[1]
 daRealpath = str(Path(sys.argv[1]).resolve())
 #print(directoryName)
 #print(os.getcwd()) # was in OS directory
-os.chdir("..") # go up one to normal directory
+
 #print(os.getcwd()) # now we are in normal directory
 
 # if the input ends with .jack then the input is a file. So change the directory to the directory of that file
