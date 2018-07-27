@@ -1,0 +1,177 @@
+function Keyboard.init 0
+push constant 0
+return
+function Keyboard.keyPressed 1
+push constant 24576
+call Memory.peek 1
+pop local 0
+push local 0
+push constant 0
+eq
+not
+not
+if-goto ifL0
+push local 0
+return
+goto ifL1
+label ifL0
+push constant 0
+return
+label ifL1
+function Keyboard.readChar 1
+push constant 0
+call Output.printChar 1
+pop temp 0
+label whileL0
+call Keyboard.keyPressed 0
+push constant 0
+eq
+not
+if-goto whileL1
+goto whileL0
+label whileL1
+call Keyboard.keyPressed 0
+pop local 0
+label whileL2
+call Keyboard.keyPressed 0
+push constant 0
+eq
+not
+not
+if-goto whileL3
+goto whileL2
+label whileL3
+call Output.backSpace 0
+pop temp 0
+push local 0
+call Output.printChar 1
+pop temp 0
+push local 0
+return
+function Keyboard.readLine 3
+push constant 128
+pop local 1
+push constant 0
+pop local 2
+push constant 32
+call String.new None
+pop local 0
+push argument 0
+call Output.printString 1
+pop temp 0
+label whileL4
+push local 2
+push local 1
+eq
+not
+not
+if-goto whileL5
+call Keyboard.readChar 0
+pop local 2
+push local 2
+push constant 129
+eq
+not
+if-goto ifL2
+push local 0
+call String.length None
+push constant 0
+eq
+not
+not
+if-goto ifL3
+call Output.backSpace 0
+pop temp 0
+push local 0
+call String.eraseLastChar None
+goto ifL4
+label ifL3
+label ifL4
+goto ifL5
+label ifL2
+label ifL5
+push local 2
+push constant 129
+eq
+not
+push local 2
+push local 1
+eq
+not
+and
+not
+if-goto ifL6
+push local 0
+push local 2
+call String.appendChar None
+goto ifL7
+label ifL6
+label ifL7
+goto whileL4
+label whileL5
+push local 0
+return
+function Keyboard.readInt 3
+push constant 128
+pop local 1
+push constant 0
+pop local 2
+push constant 32
+call String.new None
+pop local 0
+push argument 0
+call Output.printString 1
+pop temp 0
+label whileL6
+push local 2
+push local 1
+eq
+not
+not
+if-goto whileL7
+call Keyboard.readChar 0
+pop local 2
+push local 2
+push constant 129
+eq
+not
+if-goto ifL8
+push local 0
+call String.length None
+push constant 0
+eq
+not
+not
+if-goto ifL9
+call Output.backSpace 0
+pop temp 0
+push local 0
+call String.eraseLastChar None
+goto ifL10
+label ifL9
+label ifL10
+goto ifL11
+label ifL8
+label ifL11
+push local 2
+push constant 129
+eq
+not
+push local 2
+push local 1
+eq
+not
+and
+not
+if-goto ifL12
+push local 0
+push local 2
+call String.appendChar None
+goto ifL13
+label ifL12
+label ifL13
+goto whileL6
+label whileL7
+push local 0
+call String.intValue None
+return

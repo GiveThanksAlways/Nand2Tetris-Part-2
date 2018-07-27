@@ -125,6 +125,7 @@ if-goto ifL0
 push this 0
 push constant 1
 call Bat.setDirection 2
+pop temp 0
 goto ifL1
 label ifL0
 push local 0
@@ -135,6 +136,7 @@ if-goto ifL2
 push this 0
 push constant 2
 call Bat.setDirection 2
+pop temp 0
 goto ifL3
 label ifL2
 push local 0
