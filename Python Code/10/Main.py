@@ -7,29 +7,53 @@ from Parser import Parser
 
 nonTerminals = ['class','classVarDec','subroutineDec','parameterList','subroutineBody','varDec','statements','whileStatement','ifStatement','returnStatement','letStatement','doStatement','expression','term','expressionList']
 
-
+import sys
+import os
 import glob
+from pathlib import Path
+directoryName = sys.argv[1]
 
-for filename in glob.glob('*.jack'):
-  
+daRealpath = str(Path(sys.argv[1]).resolve())
+
+# if the input ends with .vm then the input is a file. So change the directory to the directory of that file
+if(sys.argv[1].endswith(".jack")):
+    daRealpath = str(daRealpath.rpartition("/")[0])
+    os.chdir(daRealpath)
+else:
+    # if the input is a directory, then we change to that directory
+    os.chdir(os.path.realpath(directoryName))
+
+# now that the cwd is correct, we get the filename
+ASMFileName = str(os.getcwd())
+ASMFileName = ASMFileName.rpartition("/")[2]
+items = os.listdir(".") # gets all of the files in the directory
+onlyjack = []
+for item in items:
+    if(item.endswith(".jack")):
+        onlyjack.append(item)
+
+#output = open(ASMFileName+ ".asm",'w')
+
+#for filename in glob.glob('*.vm'):
+for filename in onlyjack:
+
+  #content = []
+#import glob
+
+#for filename in glob.glob('*.jack'):
+
   content = []
   #print(filename)
   with open(filename) as f:
       for line in f:
-          # takes out the // and /* comments
-          line = line.split('//', 1)[0]
-          line = line.split('/*')[0]
-          line = line.rstrip()
-          # take out the more than one line comments with *
-          a = list(line)
-          if len(a) > 2:
-            if a[0] ==' ' and a[1] == '*':
-              #print(line)
-              line = line.split('*')[0]
-              line = line.rstrip()
-              #print(line)
-          content.append(line)
-      
+              line = line.lstrip(' ') # this will take away the leading whitespace
+              # check if the line starts with the symbols for comments
+              if( not (line.startswith("//") or line.startswith("/**") or line.startswith("*") or line.startswith("*/"))):
+                # if there is a trailing comment then remove it
+                line = line.split('//', 1)[0]
+                line = line.rstrip()
+                content.append(line)
+
   content = [x.strip() for x in content]
   content[:] = [item for item in content if item != '']
   #output = open(filename[:filename.index('.')]+'.xml','w')
@@ -63,18 +87,18 @@ for filename in glob.glob('*.jack'):
           tokenArray = []
         else:
           tokenArray.append(letter)
-       
+
       else:
         #print(''.join(tokenArray))
         tokenToPrint.append(''.join(tokenArray))
         tokenArray = []
-        
-  
-  
+
+
+
   tokenToPrint = [x.strip() for x in tokenToPrint]
   tokenToPrint[:] = [item for item in tokenToPrint if item != '']
   #print(tokenToPrint)
-  
+
   # Take tokens and wrap in XML
 
   XMLTokensList = ['<tokens>']
@@ -82,7 +106,7 @@ for filename in glob.glob('*.jack'):
     tokenWrap(XMLTokensList,token)
     #print(token)
   XMLTokensList.append('</tokens>')
-  
+
   # take the xml wrapped tokens and output to output file
   for item in XMLTokensList:
     #print(item)
@@ -91,18 +115,9 @@ for filename in glob.glob('*.jack'):
   output.close()
   #print(XMLTokensList)
   XMLTokensList.clear()
-  
-    
+
+
   # Now Parse the tokens
   #print(output_Token_string,output_string)
 
   da_output = Parser(output_Token_string,output_string)
-
-  
-  
-
-
-  
-  
-  
-  
