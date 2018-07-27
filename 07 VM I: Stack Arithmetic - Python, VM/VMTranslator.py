@@ -334,29 +334,49 @@ def popASM(s,name):
 #import os
 #items = os.listdir(".")
 
-#import glob
-#import fileinput
 import sys
 import os
-#for filename in glob.glob('*.vm'):
-#for filename in items:
-    #if filename.endswith("vm"):
+import glob
+from pathlib import Path
+directoryName = sys.argv[1]
 
-        #print(filename)
-#filename = fileinput.input()
-#print(filename)
-#print( fileinput.filename() )
-#with fileinput.input(files=('StaticTest.vm', 'BasicTest.vm', 'PointerTest.vm')) as f:
-#print(len(sys.argv))
-#print(sys.argv[0])
+daRealpath = str(Path(sys.argv[1]).resolve())
+
+# if the input ends with .vm then the input is a file. So change the directory to the directory of that file
+if(sys.argv[1].endswith(".vm")):
+    daRealpath = str(daRealpath.rpartition("/")[0])
+    os.chdir(daRealpath)
+
+    ASMFileName = sys.argv[1].split("/")[-1]
+    ASMFileName = ASMFileName.split(".vm")[0]
+    #print(ASMFileName)
+else:
+    # if the input is a directory, then we change to that directory
+    os.chdir(os.path.realpath(directoryName))
+    # now that the cwd is correct, we get the filename
+    ASMFileName = str(os.getcwd())
+    ASMFileName = ASMFileName.rpartition("/")[2]
+
+items = os.listdir(".") # gets all of the files in the directory
+#print(items)
+onlyVM = []
+for item in items:
+    if(item.endswith(".vm")):
+        onlyVM.append(item)
+
+#output = open(ASMFileName+ ".asm",'w')
+
+#print(ASMFileName+ '.asm')
+output = open(ASMFileName+ ".asm",'w')
+#print(onlyVM)
 # this will get all the number of files we are working with, then open each one individually
-for fileName in sys.argv:
+for fileName in onlyVM:
     # only open .vm files
-    if(fileName[-2:] == 'vm'):
+    #if(fileName[-2:] == 'vm'):
         #print(file)
         #print(os.getcwd())
-        from pathlib import Path
-        daRealpath = str(Path(fileName).resolve())
+        #from pathlib import Path
+        #daRealpath = str(Path(fileName).resolve())
         daRealFilename = fileName
         #print(p)
         with open(fileName) as file:
@@ -382,7 +402,7 @@ for fileName in sys.argv:
             #print(filename)
             #print(os.path.abspath(filename))
             #print(join(os.getcwd(),p))
-            output = open(filename[:filename.index('.')]+'.asm','w')
+            #output = open(filename[:filename.index('.')]+'.asm','w')
             #print(filename[:filename.index('.')]+'.asm')
             #output = open(daRealpath[:dareal.index('.')]+'.asm','w')
 
@@ -434,5 +454,5 @@ for fileName in sys.argv:
 
 
             #print(filename[:filename.index('.')])
-            output.close()
+output.close()
             #fileinput.nextfile()
