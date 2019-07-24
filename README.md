@@ -10,3 +10,4 @@ Visit the Nand to Tetris website here. [Nand2Tetris](https://www.nand2tetris.org
 
 
 ![firstPicture](./img/Nand2Tetris.png)
+![firstPicture](./img/twelveProjects.png)
