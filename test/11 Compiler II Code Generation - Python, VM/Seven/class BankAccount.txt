@@ -1,0 +1,19 @@
+class BankAccount {
+    static int nAccounts;
+    static String owner;
+    
+    field int id;
+    field String owner;
+    field int balance;
+    
+    method int commission(int x) {
+    
+    }
+    
+    method void transfer(int sum,BankAccount from, Date when) {
+    var int i,j;
+    var Date due;
+    let balance = (balance + sum) - commission(sum * 5);
+    return;
+    }
+}
