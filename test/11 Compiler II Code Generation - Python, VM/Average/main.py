@@ -1,160 +1,148 @@
-from Tokenizer import tokenType,tokenWrap,insideAstring
+"""
+Main module for the Jack compiler.
 
-from Parser import Parser
-
-import glob
+This module serves as the entry point for the Jack compiler, orchestrating
+the tokenization and parsing of Jack source files to generate VM code.
+"""
 
 import os
+from typing import List
 
-nonTerminals = ['class','classVarDec','subroutineDec','parameterList','subroutineBody','varDec','statements','whileStatement','ifStatement','returnStatement','letStatement','doStatement','expression','term','expressionList']
+from Parser import Parser
+from SymbolTable import SymbolTable
+from Tokenizer import inside_a_string, token_type, token_wrap
 
-from SymbolTable import SymbolTable,Node,LinkedList
-parserSymbolTable = SymbolTable()
-# OS and other functions
-#defineSubroutineTracker(self.subroutineName,'method' ,self.className,self.subroutineVoid)
-parserSymbolTable.defineSubroutineTracker('deAlloc','1','OS',True) # void
-parserSymbolTable.defineSubroutineTracker('keyPressed','0','OS',False) # not void
-parserSymbolTable.defineSubroutineTracker('wait','1','OS',True) # void
-# methods have k+1 because the plust one is the object 'argument 0' or 'pointer 0'
-#parserSymbolTable.define('moveUp','1','OS') 
-#parserSymbolTable.define('moveDown','1','OS')
-#parserSymbolTable.define('moveLeft','1','OS')
-#parserSymbolTable.define('moveRight','1','OS')
-#parserSymbolTable.define('incSize','1','OS')
-#parserSymbolTable.define('dispose','1','OS')
-#parserSymbolTable.define('decSize','1','OS')
-parserSymbolTable.define('new','1','OS') 
-parserSymbolTable.defineSubroutineTracker('setColor','1','OS',True) # void
-parserSymbolTable.defineSubroutineTracker('drawRectangle','4','OS',True) # void
-parserSymbolTable.defineSubroutineTracker('printInt','1','OS',True) # void
-parserSymbolTable.defineSubroutineTracker('printString','1','OS',True) # void
-parserSymbolTable.defineSubroutineTracker('readInt','1','OS',True) # void
-#parserSymbolTable.define(daname,datype,dakind)
+# Non-terminal symbols in the Jack grammar
+NON_TERMINALS: List[str] = [
+    'class', 'classVarDec', 'subroutineDec', 'parameterList',
+    'subroutineBody', 'varDec', 'statements', 'whileStatement',
+    'ifStatement', 'returnStatement', 'letStatement', 'doStatement',
+    'expression', 'term', 'expressionList'
+]
 
 
+def initialize_symbol_table() -> SymbolTable:
+    """
+    Initialize the symbol table with OS library function definitions.
+
+    Returns:
+        A SymbolTable populated with standard OS library functions.
+    """
+    symbol_table = SymbolTable()
+
+    # OS library functions
+    symbol_table.define_subroutine_tracker('deAlloc', '1', 'OS', True)
+    symbol_table.define_subroutine_tracker('keyPressed', '0', 'OS', False)
+    symbol_table.define_subroutine_tracker('wait', '1', 'OS', True)
+    symbol_table.define('new', '1', 'OS')
+    symbol_table.define_subroutine_tracker('setColor', '1', 'OS', True)
+    symbol_table.define_subroutine_tracker('drawRectangle', '4', 'OS', True)
+    symbol_table.define_subroutine_tracker('printInt', '1', 'OS', True)
+    symbol_table.define_subroutine_tracker('printString', '1', 'OS', True)
+    symbol_table.define_subroutine_tracker('readInt', '1', 'OS', True)
+
+    return symbol_table
 
 
+def process_jack_file(
+    file_path: str,
+    folder_name: str,
+    filename: str,
+    symbol_table: SymbolTable
+) -> None:
+    """
+    Process a single Jack file through tokenization and parsing.
 
-for folderName, subfolders, filenames in os.walk('/home/runner'):
-  #print('The current folder is ' + folderName)
+    Args:
+        file_path: Full path to the Jack file.
+        folder_name: Directory containing the file.
+        filename: Name of the Jack file.
+        symbol_table: The symbol table to use for compilation.
+    """
+    content: List[str] = []
 
-  for subfolder in subfolders:
-    #print('SUBFOLDER OF ' + folderName + ': ' + subfolder)
-    2+2
-  
-  for filename in filenames:
-    #print(filename.split('.')[-1])
-    #print(folderName.split('.'))
-    #print(folderName.split('.') )
-    if filename.split('.')[-1] == 'jack':
-      #print('FILE INSIDE ' + folderName + ': '+ filename)
-      #print(filename)
-            
-    #for filename in glob.glob('*.jack'):
-      
-      #print(os.getcwd())
-      #print(filename)
-      content = []
-      #print(filename)
-      #print(folderName)
-      #print(os.getcwd())
-      fileInDirectory = os.path.join(folderName,filename) 
-      #print(fileInDirectory)
-      #print(fileInDirectory)
-      with open(fileInDirectory) as f:
-          for line in f:
-              # takes out the // and /* comments
-              line = line.split('//', 1)[0]
-              line = line.split('/*')[0]
-              line = line.rstrip()
-              # take out the more than one line comments with *
-              a = list(line)
-              if len(a) > 2:
-                if a[0] ==' ' and a[1] == '*':
-                  #print(line)
-                  line = line.split('*')[0]
-                  line = line.rstrip()
-                  #print(line)
-              content.append(line)
-          
-      content = [x.strip() for x in content]
-      content[:] = [item for item in content if item != '']
-      #output = open(filename[:filename.index('.')]+'.xml','w')
-      output_string = os.path.join(folderName, str(filename[:filename.index('.')]))
-      #str(filename[:filename.index('.')])
-      output_Token_string = str(filename[:filename.index('.')])+'Token'+'.xml'
-      output = open(os.path.join(folderName,output_Token_string) ,'w')
-      tokenArray = []
-      tokenToPrint=[]
-      stringcounter = 0
-      for item in content:
-        #print(item)
+    # Read and preprocess the file
+    with open(file_path) as f:
+        for line in f:
+            # Remove // and /* comments
+            line = line.split('//', 1)[0]
+            line = line.split('/*')[0]
+            line = line.rstrip()
+
+            # Remove multi-line comments starting with *
+            chars = list(line)
+            if len(chars) > 2:
+                if chars[0] == ' ' and chars[1] == '*':
+                    line = line.split('*')[0]
+                    line = line.rstrip()
+            content.append(line)
+
+    # Clean up content
+    content = [x.strip() for x in content]
+    content = [item for item in content if item != '']
+
+    # Set up output paths
+    output_string = os.path.join(folder_name, filename[:filename.index('.')])
+    output_token_string = f"{filename[:filename.index('.')]}Token.xml"
+    output = open(os.path.join(folder_name, output_token_string), 'w')
+
+    # Tokenize the content
+    token_array: List[str] = []
+    tokens_to_print: List[str] = []
+    string_counter = 0
+
+    for item in content:
         for letter in item:
-          #print(letter)
+            # Track string boundaries using quote count
+            if letter == '"':
+                string_counter += 1
 
-          # use mod (%) to tell if in string or not
-          if letter == '"':
-            stringcounter += 1
-
-          if insideAstring(stringcounter):
-            # we are still in a string so just print everything until end of string
-            tokenArray.append(letter) # take all values till " sign
-          elif letter != ' ':
-            #print(letter)
-
-            if tokenType(letter) == 'symbol':
-              tokenToPrint.append(''.join(tokenArray))
-              tokenArray = []
-              tokenArray.append(letter)
-              #print(''.join(tokenArray))
-              tokenToPrint.append(''.join(tokenArray))
-              tokenArray = []
+            if inside_a_string(string_counter):
+                token_array.append(letter)
+            elif letter != ' ':
+                if token_type(letter) == 'symbol':
+                    tokens_to_print.append(''.join(token_array))
+                    token_array = []
+                    token_array.append(letter)
+                    tokens_to_print.append(''.join(token_array))
+                    token_array = []
+                else:
+                    token_array.append(letter)
             else:
-              tokenArray.append(letter)
-          
-          else:
-            #print(''.join(tokenArray))
-            tokenToPrint.append(''.join(tokenArray))
-            tokenArray = []
-            
-      
-      
-      tokenToPrint = [x.strip() for x in tokenToPrint]
-      tokenToPrint[:] = [item for item in tokenToPrint if item != '']
-      #print(tokenToPrint)
-      
-      # Take tokens and wrap in XML
+                tokens_to_print.append(''.join(token_array))
+                token_array = []
 
-      XMLTokensList = ['<tokens>']
-      for token in tokenToPrint:
-        tokenWrap(XMLTokensList,token)
-        #print(token)
-      XMLTokensList.append('</tokens>')
-      
-      # take the xml wrapped tokens and output to output file
-      for item in XMLTokensList:
-        #print(item)
+    # Clean up tokens
+    tokens_to_print = [x.strip() for x in tokens_to_print]
+    tokens_to_print = [item for item in tokens_to_print if item != '']
+
+    # Wrap tokens in XML
+    xml_tokens_list: List[str] = ['<tokens>']
+    for token in tokens_to_print:
+        token_wrap(xml_tokens_list, token)
+    xml_tokens_list.append('</tokens>')
+
+    # Write XML tokens to output file
+    for item in xml_tokens_list:
         output.write(item)
         output.write('\n')
-      output.close()
-      #print(XMLTokensList)
-      XMLTokensList.clear()
-      
-        
-      # Now Parse the tokens
-      #print(output_Token_string,output_string)
+    output.close()
+    xml_tokens_list.clear()
 
-      
-
-      da_output = Parser(os.path.join(folderName,output_Token_string),output_string,parserSymbolTable)
-
-#parserSymbolTable.viewTableCST()
-
-    
+    # Parse the tokens
+    Parser(os.path.join(folder_name, output_token_string), output_string, symbol_table)
 
 
+def main() -> None:
+    """Main entry point for the Jack compiler."""
+    symbol_table = initialize_symbol_table()
+
+    for folder_name, subfolders, filenames in os.walk('/home/runner'):
+        for filename in filenames:
+            if filename.split('.')[-1] == 'jack':
+                file_path = os.path.join(folder_name, filename)
+                process_jack_file(file_path, folder_name, filename, symbol_table)
 
 
-
-
-  
+if __name__ == '__main__':
+    main()
