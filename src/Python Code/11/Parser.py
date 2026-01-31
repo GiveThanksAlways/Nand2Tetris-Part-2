@@ -1,805 +1,656 @@
-from SymbolTable import SymbolTable,Node,LinkedList
+"""
+Jack Parser - Recursive descent parser and code generator.
 
+Parses tokenized Jack source code and generates VM code.
+Part of the Nand2Tetris course (Project 11).
+"""
+
+from typing import List, Optional
+from SymbolTable import SymbolTable
 from VMWriter import VMWriter
 
+
 class Parser:
-  def __init__(self, parserInput, parserOutput,daSymbolTable):
-    
-    self.tTp = [] #tokens to parse array aka tTp
-    self.tTpcopy = [] #copy to help remove stuff
-    self.tokenCounter = 0
-    self.indent = 0
+    """Recursive descent parser and code generator for Jack language."""
 
-    # open the input.xml file made by the tokenizer (full of tokens ready to parse)
-    with open(parserInput) as f:
-      for line in f:
-        self.tTpcopy.append(line)
-    self.tTp = self.tTpcopy[1:-1] # remove unwanted stuff from copy
+    # Token constants
+    FIELD_TOKEN = '<keyword> field </keyword>\n'
+    STATIC_TOKEN = '<keyword> static </keyword>\n'
+    VAR_TOKEN = '<keyword> var </keyword>\n'
+    CONSTRUCTOR_TOKEN = '<keyword> constructor </keyword>\n'
+    FUNCTION_TOKEN = '<keyword> function </keyword>\n'
+    METHOD_TOKEN = '<keyword> method </keyword>\n'
+    VOID_TOKEN = '<keyword> void </keyword>\n'
+    IF_TOKEN = '<keyword> if </keyword>\n'
+    LET_TOKEN = '<keyword> let </keyword>\n'
+    WHILE_TOKEN = '<keyword> while </keyword>\n'
+    DO_TOKEN = '<keyword> do </keyword>\n'
+    RETURN_TOKEN = '<keyword> return </keyword>\n'
+    ELSE_TOKEN = '<keyword> else </keyword>\n'
+    TRUE_TOKEN = '<keyword> true </keyword>\n'
+    FALSE_TOKEN = '<keyword> false </keyword>\n'
+    NULL_TOKEN = '<keyword> null </keyword>\n'
+    THIS_TOKEN = '<keyword> this </keyword>\n'
+    LPAREN_TOKEN = '<symbol> ( </symbol>\n'
+    RPAREN_TOKEN = '<symbol> ) </symbol>\n'
+    LBRACKET_TOKEN = '<symbol> [ </symbol>\n'
+    RBRACKET_TOKEN = '<symbol> ] </symbol>\n'
+    SEMICOLON_TOKEN = '<symbol> ; </symbol>\n'
+    DOT_TOKEN = '<symbol> . </symbol>\n'
+    COMMA_TOKEN = '<symbol> , </symbol>\n'
+    MINUS_TOKEN = '<symbol> - </symbol>\n'
+    TILDE_TOKEN = '<symbol> ~ </symbol>\n'
+    EQUALS_TOKEN = '<symbol> = </symbol>\n'
 
-    self.output1 = open(parserOutput+'.xml', 'w') 
-    #output to write to
-    self.theVMWriter = VMWriter(parserOutput)
+    def __init__(self, parser_input: str, parser_output: str, symbol_table: SymbolTable) -> None:
+        """Initialize the parser."""
+        self.tokens: List[str] = []
+        self.token_counter = 0
+        self.indent = 0
 
-    
-    self.currentTokenArr = self.tTp[self.tokenCounter].split(' ')
-    self.currentToken = self.tTp[self.tokenCounter] # first token
-    self.className = ''
-    self.subroutineVoid = False
-    self.iflabel = 0
-    self.whilelabel = 0
-    self.constructor = False
-    self.functionType = ''
-    self.subroutineName = ''
-    self.array = False
+        with open(parser_input) as f:
+            tokens_copy = f.readlines()
+        self.tokens = tokens_copy[1:-1]
 
-    # get symbol table and everything started
-    self.theSymbolTable = daSymbolTable
-    self.theSymbolTable.classStart()
-    self.compileClass() # start compiling
-
-
-    self.output1.close() # close the file when done
-    
-# compile the class
-  def compileClass(self):
-    self.output1.write('<class>'+'\n')
-    self.increaseIndent()
-    self.writeAdv() # 'class'
-    # save the class name for symbol table
-    self.className = str(self.currentToken.split()[1]) 
-    self.writeAdv() #  className
-    self.writeAdv() # '{'
-
-
-    self.compileClassVarDec()
-  
-
-
-    self.compileSubroutine()
-    self.outIndent()
-    self.output1.write(self.currentToken)
-    self.output1.write('</class>'+'\n')
-
-    # recursion to compile multiple classes in one file
-    #print(self.tokenCounter)
-    #print(len(self.tTp))
-    daSize = len(self.tTp)
-    if self.tokenCounter+1 != daSize:
-      #print('hello')
-      lookAhead = str(self.tTp[self.tokenCounter+1]).split()[1]
-      #print(lookAhead)
-      if lookAhead == 'class':
-        #self.tokenCounter+= 2
-        self.writeAdv()
-        #print(self.currentToken)
-        self.compileClass() # start compiling again using recursion!!!!!
-
-
-    #self.theSymbolTable.viewTableCST()
-    return 
-
-  def compileClassVarDec(self):
-    
-
-    if str(self.currentToken) == '<keyword> field </keyword>\n' or str(self.currentToken) == '<keyword> static </keyword>\n':
-      self.outIndent()
-      self.output1.write('<classVarDec>\n')
-      self.increaseIndent()
-      # while loop takes care of (varName)*
-      classVarkind = self.currentToken.split()[1]
-      classVartype = self.tTp[self.tokenCounter+1].split()[1]
-      everytwo = 0
-      start = 1
-      while str(self.currentToken) != '<symbol> ; </symbol>\n':
-
-        if everytwo % 2 == 0 and start > 2:
-          daname = self.currentToken.split()[1]
-          self.theSymbolTable.define(daname,classVartype,classVarkind)
-          
-        self.writeAdv() 
-        start += 1
-        everytwo += 1
+        self.output = open(f"{parser_output}.xml", 'w')
+        self.vm_writer = VMWriter(parser_output)
         
+        self.current_token = self.tokens[self.token_counter]
+        self.class_name = ''
+        self.subroutine_is_void = False
+        self.if_label_counter = 0
+        self.while_label_counter = 0
+        self.is_constructor = False
+        self.function_type = ''
+        self.subroutine_name = ''
+        self.is_array = False
+
+        self.symbol_table = symbol_table
+        self.symbol_table.classStart()
+        self._compile_class()
+
+        self.output.close()
+
+    def _get_token_value(self) -> str:
+        """Extract the value from the current token."""
+        return str(self.current_token.split()[1])
+
+    def _compile_class(self) -> None:
+        """Compile a complete class."""
+        self.output.write('<class>\n')
+        self._increase_indent()
+        self._write_and_advance()  # 'class'
+        self.class_name = self._get_token_value()
+        self._write_and_advance()  # className
+        self._write_and_advance()  # '{'
+
+        self._compile_class_var_dec()
+        self._compile_subroutine()
         
-      self.writeAdv() # ')'
+        self._write_indent()
+        self.output.write(self.current_token)
+        self.output.write('</class>\n')
 
+        # Handle multiple classes in one file
+        if self.token_counter + 1 < len(self.tokens):
+            look_ahead = str(self.tokens[self.token_counter + 1]).split()[1]
+            if look_ahead == 'class':
+                self._write_and_advance()
+                self._compile_class()
 
-      self.decreaseIndent()
-      self.outIndent()
-      self.output1.write('</classVarDec>\n')
-    # recursion: check if more, then call itself again
-    if str(self.currentToken) == '<keyword> field </keyword>\n' or str(self.currentToken) == '<keyword> static </keyword>\n':
-      self.compileClassVarDec()
-    return
+    def _compile_class_var_dec(self) -> None:
+        """Compile class variable declarations."""
+        if str(self.current_token) in [self.FIELD_TOKEN, self.STATIC_TOKEN]:
+            self._write_indent()
+            self.output.write('<classVarDec>\n')
+            self._increase_indent()
+            
+            var_kind = self._get_token_value()
+            var_type = self.tokens[self.token_counter + 1].split()[1]
+            counter = 0
+            start = 1
+            
+            while str(self.current_token) != self.SEMICOLON_TOKEN:
+                if counter % 2 == 0 and start > 2:
+                    var_name = self._get_token_value()
+                    self.symbol_table.define(var_name, var_type, var_kind)
+                self._write_and_advance()
+                start += 1
+                counter += 1
+            
+            self._write_and_advance()  # ';'
+            self._decrease_indent()
+            self._write_indent()
+            self.output.write('</classVarDec>\n')
 
-  def compileSubroutine(self):
-    self.outIndent()
-    self.output1.write('<subroutineDec>\n')
-    self.increaseIndent()
-    
-    
-    self.functionType = str(self.currentToken.split()[1]) # save if it is constructor,function, or method
-    if str(self.currentToken.split()[1]) == 'constructor':
-      self.constructor = True
-    else:
-      self.constructor = False
+            if str(self.current_token) in [self.FIELD_TOKEN, self.STATIC_TOKEN]:
+                self._compile_class_var_dec()
 
-    self.writeAdv() # constructor|function|method
-    if str(self.currentToken.split()[1]) == 'void':
-      self.subroutineVoid = True
-    else:
-      self.subroutineVoid = False
+    def _compile_subroutine(self) -> None:
+        """Compile a subroutine."""
+        self._write_indent()
+        self.output.write('<subroutineDec>\n')
+        self._increase_indent()
+        
+        self.function_type = self._get_token_value()
+        self.is_constructor = (self.function_type == 'constructor')
+        self._write_and_advance()  # constructor|function|method
+        
+        self.subroutine_is_void = (self._get_token_value() == 'void')
+        self._write_and_advance()  # void|type
+        
+        self.subroutine_name = self._get_token_value()
+        self._write_and_advance()  # subroutineName
+        self._write_and_advance()  # '('
+        
+        self.symbol_table.startSubroutine()
+        if self.function_type == 'method':
+            self.symbol_table.defineMethod('this', self.class_name, 'argument')
 
-    self.writeAdv() # void|type
-    self.subroutineName = str(self.currentToken.split()[1]) 
-    self.writeAdv() # subroutineName
-    self.writeAdv() # '('
-    
-    self.theSymbolTable.startSubroutine()
-    if self.functionType == 'method':
-      daname = 'this'
-      datype = self.className
-      dakind = 'argument'
-      self.theSymbolTable.defineMethod(daname,datype,dakind)
+        self._compile_parameter_list()
+        self._write_and_advance()  # ')'
 
-    self.compileParameterList()
-    
-    self.writeAdv() # ')' for end of parameterlist
+        self._write_indent()
+        self.output.write('<subroutineBody>\n')
+        self._increase_indent()
+        self._write_and_advance()  # '{'
 
-    self.outIndent()
-    self.output1.write('<subroutineBody>\n')
-    self.increaseIndent()
-    self.writeAdv() # print the {
+        if str(self.current_token) == self.VAR_TOKEN:
+            self._compile_var_dec()
+        
+        # Write function declaration in VM code
+        num_locals = self.symbol_table.varCount('var')
+        self.vm_writer.writeFunction(self.class_name, self.subroutine_name, num_locals)
+        
+        # Handle constructor and method setup
+        if self.is_constructor:
+            self.vm_writer.writePush('constant', self.symbol_table.varCount('field'))
+            self.vm_writer.writeCall('Memory.alloc', 1)
+            self.vm_writer.writePop('pointer', 0)
+        elif self.function_type == 'method':
+            self.vm_writer.writePush('argument', 0)
+            self.vm_writer.writePop('pointer', 0)
 
-    # compile all of the varDecs first
-    if str(self.currentToken) == '<keyword> var </keyword>\n':
-      self.compileVarDec()
-    
-    # VM code write function down
-    the999 = self.theSymbolTable.varCount('var')
-    #print(subroutineName)
-    self.theVMWriter.writeFunction(self.className,self.subroutineName,the999)
-    
-    # code to set the 'this' to point to passed object
-    if self.constructor == True:
-      self.theVMWriter.writePush('constant',self.theSymbolTable.varCount('field'))
-      self.theVMWriter.writeCall('Memory.alloc',1)
-      self.theVMWriter.writePop('pointer',0)
-    elif self.functionType == 'method':
-      self.theVMWriter.writePush('argument',0)
-      self.theVMWriter.writePop('pointer',0)
-      #daname = 'this'
-      #datype = self.className
-      #dakind = 'argument'
-      #self.theSymbolTable.defineMethod(daname,datype,dakind)
-    # enter statements and statements calls itself recursively
-    self.compileStatements()  
-     
-    self.writeAdv() # } ending the subroutineBody
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</subroutineBody>\n')
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</subroutineDec>\n')
-    #self.theSymbolTable.viewTableMST()
-    
-    # keep track of methods in symbol table
-    
-    self.theSymbolTable.defineSubroutineTracker(self.subroutineName,'method' ,self.className,self.subroutineVoid)
-    # recusion part
-    # check if more subroutines
-    # if constructor|function|method then we compileSubroutine
-    if str(self.currentToken) == '<keyword> constructor </keyword>\n':
-      self.compileSubroutine()
-    elif str(self.currentToken) == '<keyword> function </keyword>\n':
-      self.compileSubroutine()
-    elif str(self.currentToken) == '<keyword> method </keyword>\n':
-      self.compileSubroutine()
+        self._compile_statements()
+        self._write_and_advance()  # '}'
+        
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</subroutineBody>\n')
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</subroutineDec>\n')
+        
+        self.symbol_table.defineSubroutineTracker(
+            self.subroutine_name, 'method', self.class_name, self.subroutine_is_void
+        )
 
-    return
+        if str(self.current_token) in [self.CONSTRUCTOR_TOKEN, self.FUNCTION_TOKEN, self.METHOD_TOKEN]:
+            self._compile_subroutine()
 
-  def compileParameterList(self):
-    self.outIndent()
-    self.output1.write('<parameterList>\n')
-    self.increaseIndent()
-    everythree = 0
-    while str(self.currentToken) != '<symbol> ) </symbol>\n':
-      if everythree % 3 == 0:
-        daname = self.tTp[self.tokenCounter+1].split()[1]
-        datype = self.tTp[self.tokenCounter].split()[1]
-        dakind = 'argument'
-        self.theSymbolTable.defineMethod(daname,datype,dakind)
+    def _compile_parameter_list(self) -> None:
+        """Compile a parameter list."""
+        self._write_indent()
+        self.output.write('<parameterList>\n')
+        self._increase_indent()
+        
+        counter = 0
+        while str(self.current_token) != self.RPAREN_TOKEN:
+            if counter % 3 == 0:
+                param_name = self.tokens[self.token_counter + 1].split()[1]
+                param_type = self._get_token_value()
+                self.symbol_table.defineMethod(param_name, param_type, 'argument')
+            self._write_and_advance()
+            counter += 1
+        
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</parameterList>\n')
 
-      self.writeAdv()
-      everythree += 1
-      
-    
-    
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</parameterList>\n')
-    return
+    def _compile_var_dec(self) -> None:
+        """Compile variable declarations."""
+        self._write_indent()
+        self.output.write('<varDec>\n')
+        self._increase_indent()
+        
+        self._write_and_advance()  # 'var'
+        var_type = self._get_token_value()
+        self._write_and_advance()  # type
+        
+        counter = 0
+        while str(self.current_token) != self.SEMICOLON_TOKEN:
+            if counter % 2 == 0:
+                var_name = self._get_token_value()
+                self.symbol_table.defineMethod(var_name, var_type, 'var')
+            self._write_and_advance()
+            counter += 1
+        
+        self._write_and_advance()  # ';'
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</varDec>\n')
 
-  def compileVarDec(self):
-    
-    self.outIndent()
-    self.output1.write('<varDec>\n')
-    self.increaseIndent()
+        if str(self.current_token) == self.VAR_TOKEN:
+            self._compile_var_dec()
 
-    
-    self.writeAdv() # 'var'
-    everytwo = 0
-    datype = self.tTp[self.tokenCounter].split()[1]
-    self.writeAdv() #  type
-    while str(self.currentToken) != '<symbol> ; </symbol>\n':
-      if everytwo % 2 == 0:
-        daname = self.tTp[self.tokenCounter].split()[1]
-        dakind = 'var'
-        self.theSymbolTable.defineMethod(daname,datype,dakind)
+    def _compile_statements(self) -> None:
+        """Compile statements."""
+        self._write_indent()
+        self.output.write('<statements>\n')
+        self._increase_indent()
+        
+        while self._check_statement():
+            if str(self.current_token) == self.IF_TOKEN:
+                self._compile_if()
+            elif str(self.current_token) == self.LET_TOKEN:
+                self._compile_let()
+            elif str(self.current_token) == self.WHILE_TOKEN:
+                self._compile_while()
+            elif str(self.current_token) == self.DO_TOKEN:
+                self._compile_do()
+            elif str(self.current_token) == self.RETURN_TOKEN:
+                self._compile_return()
+        
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</statements>\n')
 
-      self.writeAdv()
-      everytwo += 1
-      
-    self.writeAdv()
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</varDec>\n')
+    def _compile_do(self) -> None:
+        """Compile a do statement."""
+        self._write_indent()
+        self.output.write('<doStatement>\n')
+        self._increase_indent()
 
-    if str(self.currentToken) == '<keyword> var </keyword>\n':
-      self.compileVarDec()
-    return
-
-  def compileStatements(self):
-    self.outIndent()
-    self.output1.write('<statements>\n')
-    self.increaseIndent()
-    
-    
-    # change to while to check if next guy is statement
-    while self.checkStatement():
-      if str(self.currentToken) == '<keyword> if </keyword>\n':
-        self.compileIf()
-      elif str(self.currentToken) == '<keyword> let </keyword>\n':
-        self.compileLet()
-      elif str(self.currentToken) == '<keyword> while </keyword>\n':
-        self.compileWhile()
-      elif str(self.currentToken) == '<keyword> do </keyword>\n':
-        self.compileDo()
-      elif str(self.currentToken) == '<keyword> return </keyword>\n':
-        if self.constructor == True:
-          2+2
-          #self.theVMWriter.writePush('pointer',0)
-        self.compileReturn()
-
-    
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</statements>\n')
-    return
-
-  def compileDo(self):
-    self.outIndent()
-    self.output1.write('<doStatement>\n')
-    self.increaseIndent()
-    DoSubroutineName = ''
-    self.writeAdv() # 'do'
-    # subroutineCall which is a term, inside of an expression
-    
-    # LL(2) grammar part. 
-    # look ahead one token to see if ( or . for two types of subroutine calls
-    lookAhead = self.tTp[self.tokenCounter+1]
-    if lookAhead == '<symbol> ( </symbol>\n':
-      callF = str(self.currentToken.split()[1])
-      DoSubroutineName = callF
-      #print(callF)
-      self.theVMWriter.writePush('pointer','0')
-      self.writeAdv() # subroutineName wrapped in identifier tags
-      self.writeAdv() # '('
-      self.compileExpressionList()
-      self.writeAdv() # ')'
-      self.writeAdv() # ';'
-      #checkClass = self.theSymbolTable.getKind(callF)
-      # check if the calling class is the same as the current class. If not, we need to find the write method/function/subroutine from that calling class
-      #if(checkClass != self.className):
-        #numOfarg = self.theSymbolTable.getIDofClass(callF,checkClass)
-      #else:
-      #numOfarg = self.theSymbolTable.getID(callF)
-      numOfarg = self.theSymbolTable.getIDofClass(callF,self.className)
-      
-      self.theVMWriter.writeCall(self.className+'.'+callF,str(numOfarg)) # this is the call that will print for methods ie erase() and only for Do statements where it is just a method of the current class being compiled  
-      if self.theSymbolTable.getVoid(callF,self.className):
-        self.theVMWriter.writePop('temp','0')
-    else:
-      # subroutineName
-      otherClassname = str(self.currentToken.split()[1])
-      self.writeAdv() # className|varName
-      self.writeAdv() # '.'
-      callF = str(self.currentToken.split()[1]) # subroutineName
-      if self.theSymbolTable.getKind(otherClassname) != None:
-        theSegment = self.theSymbolTable.getKind(otherClassname)
-        theIndex = self.theSymbolTable.getID(otherClassname)
-        self.theVMWriter.writePush(theSegment,theIndex)
-      self.writeAdv() # subroutineName
-      self.writeAdv() # '('
-      self.compileExpressionList()
-      self.writeAdv() # ')'
-      self.writeAdv() # ';'
-      #checkClass = self.theSymbolTable.getKind(callF)
-      
-        #numOfarg = self.theSymbolTable.getIDofClass(callF,self.className)
-        #realClassName = self.theSymbolTable.getType(otherClassname)
-      #print(otherClassname)
-      # this will check all kinds ie Class Names. If None, then we have an acutal class 
-      if self.theSymbolTable.getKind(otherClassname) == None: 
-        numOfarg = self.theSymbolTable.getIDofClass(callF,otherClassname)
-        self.theVMWriter.writeCall(otherClassname+'.'+callF,str(numOfarg)) # This writeCall is for other classes ie Screen.drawRectangle
-        if self.theSymbolTable.getVoid(callF,otherClassname):
-          self.theVMWriter.writePop('temp','0')
-      # this is the loop for the object 
-      else:
-        #theSegment = self.theSymbolTable.getKind(otherClassname)
-        #theIndex = self.theSymbolTable.getID(otherClassname)
-        #self.theVMWriter.writePush(theSegment,theIndex)
-        # find the realClassName or the class name of the object 
-        realClassName = self.theSymbolTable.getType(otherClassname)
-        if realClassName != None:
-            #print('hello\n\n\n\n')
-            #print(otherClassname)
-            #print(realClassName)
-            numOfarg = self.theSymbolTable.getIDofClass(callF,realClassName)
-            self.theVMWriter.writeCall(realClassName+'.'+callF,str(numOfarg)) # write call for objects ie square.moveRight, it is the object, not the class ie game.run(), game is of the SquareGame class, run is the method game is the object 
-            if self.theSymbolTable.getVoid(callF,realClassName):
-              self.theVMWriter.writePop('temp','0')
-            #print("current class " + self.className)
-            #print("realClassname " + str(realClassName))
-            #print("otherClassname " + otherClassname)
-            #print("callF --> " + callF)
-            #print("numOfarg ---> " + str(numOfarg))
+        self._write_and_advance()  # 'do'
+        
+        look_ahead = self.tokens[self.token_counter + 1]
+        if look_ahead == self.LPAREN_TOKEN:
+            call_name = self._get_token_value()
+            self.vm_writer.writePush('pointer', '0')
+            self._write_and_advance()  # subroutineName
+            self._write_and_advance()  # '('
+            self._compile_expression_list()
+            self._write_and_advance()  # ')'
+            self._write_and_advance()  # ';'
+            
+            num_args = self.symbol_table.getIDofClass(call_name, self.class_name)
+            self.vm_writer.writeCall(f"{self.class_name}.{call_name}", str(num_args))
+            if self.symbol_table.getVoid(call_name, self.class_name):
+                self.vm_writer.writePop('temp', '0')
         else:
-          numOfarg = self.theSymbolTable.getIDofClass(callF,otherClassname)
-          self.theVMWriter.writeCall(otherClassname+'.'+callF,str(numOfarg))
-          if self.theSymbolTable.getVoid(callF,otherClassname):
-            self.theVMWriter.writePop('temp','0')
+            other_class_name = self._get_token_value()
+            self._write_and_advance()  # className|varName
+            self._write_and_advance()  # '.'
+            call_name = self._get_token_value()
+            
+            if self.symbol_table.getKind(other_class_name) is not None:
+                segment = self.symbol_table.getKind(other_class_name)
+                index = self.symbol_table.getID(other_class_name)
+                self.vm_writer.writePush(segment, index)
+            
+            self._write_and_advance()  # subroutineName
+            self._write_and_advance()  # '('
+            self._compile_expression_list()
+            self._write_and_advance()  # ')'
+            self._write_and_advance()  # ';'
+            
+            self._write_call_for_do(other_class_name, call_name)
 
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</doStatement>\n')
 
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</doStatement>\n')
-    #if self.theSymbolTable.getVoid(DoSubroutineName):
-      #print(DoSubroutineName)
-      # if the method call was void
-      # self.theSymbolTable.getVoid(callF)
-      #print(DoSubroutineName)
-      #self.theVMWriter.writePop('temp','0')
-
-    return
-
-  def compileLet(self):
-    self.outIndent()
-    self.output1.write('<letStatement>\n')
-    self.increaseIndent()
-
-    self.writeAdv() # 'let'
-    letVarname = str(self.currentToken.split()[1]) 
-    self.writeAdv() # varName
-    #check if [] brackets are there or not 
-    if str(self.currentToken) == '<symbol> [ </symbol>\n':
-      self.array = True
-      # push a from a[i]
-      theSegment = self.theSymbolTable.getKind(letVarname)
-      theIndex = self.theSymbolTable.getID(letVarname)
-      self.theVMWriter.writePush(theSegment,theIndex)
-      self.writeAdv() # [
-      self.compileExpression()
-      self.writeAdv() # ]
-      # add
-      self.theVMWriter.writeArithmetic('+')
-      
-    self.writeAdv() # '=' 
-    self.compileExpression() # 19 expression in example
-    self.writeAdv() # ';'
-   
-    if self.array:
-      #self.theVMWriter.writePop('pointer','1')
-      self.theVMWriter.writePop('temp',0)
-      self.theVMWriter.writePop('pointer',1)
-      self.theVMWriter.writePush('temp',0)
-      self.theVMWriter.writePop('that',0)
-      self.array = False
-    else:
-      # now VM code for pop stack result to varName spot
-      
-      theSegment = self.theSymbolTable.getKind(letVarname)
-      theIndex = self.theSymbolTable.getID(letVarname)
-      self.theVMWriter.writePop(theSegment,theIndex)
-
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</letStatement>\n')
-    return
-
-  def compileWhile(self):
-    self.outIndent()
-    self.output1.write('<whileStatement>\n')
-    self.increaseIndent()
-
-    whileLabel1 = str('whileL'+str(self.whilelabel))
-    self.whilelabel += 1
-    whileLabel2 = str('whileL'+str(self.whilelabel))
-    self.whilelabel += 1
-    self.theVMWriter.writeLabel(whileLabel1) # label L1
-
-    self.writeAdv() # 'while'
-    self.writeAdv() # (
-    self.compileExpression()
-    
-    # taken care of by expression-compileTerm
-    self.theVMWriter.writeArithmetic('NOT') # push !(cond)
-    self.theVMWriter.writeIf(whileLabel2)
-
-    self.writeAdv() # )
-    self.writeAdv() # {
-    self.compileStatements() # VM code for {}
-    self.writeAdv() # }
-    self.theVMWriter.writeGoto(whileLabel1) # go to L1
-    self.theVMWriter.writeLabel(whileLabel2) # label 2
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</whileStatement>\n')
-    return
-
-  def compileReturn(self):
-    self.outIndent()
-    self.output1.write('<returnStatement>\n')
-    self.increaseIndent()
-
-    self.writeAdv() # print return 
-    # if expression compile that as well
-    if self.checkMoreTerms():
-      self.compileExpression()
-    self.writeAdv() # ;
-
-    # if void push 0 ,if not return top of stack
-    if self.subroutineVoid:
-      self.theVMWriter.writePush('constant',0)
-    # VM code return
-    self.theVMWriter.writeReturn()
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</returnStatement>\n')
-    return
-
-  def compileIf(self):
-    self.outIndent()
-    self.output1.write('<ifStatement>\n')
-    self.increaseIndent()
-
-    self.writeAdv() # 'if'
-    self.writeAdv() # '('
-    self.compileExpression()
-    self.writeAdv() # ')'
-
-    self.theVMWriter.writeArithmetic('NOT') # push !(cond)
-    ifLabel1 = str('ifL'+str(self.iflabel))
-    self.iflabel += 1
-    self.theVMWriter.writeIf(ifLabel1)
-
-    self.writeAdv() # '{'
-    self.compileStatements()
-
-    ifLabel2 = str('ifL'+str(self.iflabel))
-    self.iflabel += 1
-    self.theVMWriter.writeGoto(ifLabel2)
-
-    self.theVMWriter.writeLabel(ifLabel1)
-    self.writeAdv() # '}'
-    # check if else statment is there 
-    if str(self.currentToken) == '<keyword> else </keyword>\n':
-      self.writeAdv() # 'else'
-      self.writeAdv() # '{'
-      self.compileStatements()
-      self.writeAdv() # '}'
-    
-    self.theVMWriter.writeLabel(ifLabel2)
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</ifStatement>\n')
-    return
-
-  def compileExpression(self):
-    # begging of expression so add indent to parse tree
-    self.outIndent()
-    self.output1.write('<expression>\n')
-    self.increaseIndent()
-
-    # VM codeWrite(exp) algorithm
-    #self.codeWrite()
-
-    # compile term calls itself recursively to take care of multiple terms ie. term (op term)*
-    self.compileTerm()
-
-    
-    # expression is over, no more terms, decrease the indent
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</expression>\n')
-    return
-
-  def compileTerm(self):
-    self.outIndent()
-    self.output1.write('<term>\n')
-    self.increaseIndent()
-
-    
-
-    # da first part of the token
-    daToken = str(self.currentToken.split()[0])
-    VMToken = str(self.currentToken.split()[1])
-    
-    # check which type of term to compile
-    if daToken == '<identifier>':
-      lookAhead = self.tTp[self.tokenCounter+1]
-      if lookAhead == '<symbol> [ </symbol>\n': # then it is an array
-        #print('array')
-        theSegment = self.theSymbolTable.getKind(VMToken)
-        theIndex = self.theSymbolTable.getID(VMToken)
-        self.theVMWriter.writePush(theSegment,theIndex)
-        #arrayNumber = self.tTp[self.tokenCounter+2].split()[1]
-        #arrayName = VMToken
-        self.writeAdv() # write the identifier varName
-        self.writeAdv() # the [
-        self.compileExpression()
-        self.writeAdv() # the ]
-        #theSegment = self.theSymbolTable.getKind(arrayName)
-        #theIndex = self.theSymbolTable.getID(arrayName)
-        #self.theVMWriter.writePush(theSegment,theIndex)
-        # add i + base of array
-        self.theVMWriter.writeArithmetic('+')
-        self.theVMWriter.writePop('pointer','1')
-        self.theVMWriter.writePush('that','0')
-        #self.writeAdv() # '='
-        #self.compileExpression()
-
-        #self.theVMWriter.writePop('temp',0)
-        #self.theVMWriter.writePop('pointer',1)
-        #self.theVMWriter.writePush('temp',0)
-        #self.theVMWriter.writePop('that',0)
-        
-      elif lookAhead == '<symbol> ( </symbol>\n': # then it is a subroutine call
-      # VM use That point
-        #call f
-        callF = str(self.currentToken.split()[1])
-        self.theVMWriter.writePush('argument','0')
-        self.writeAdv() # subroutineName
-        self.writeAdv() # '('
-        self.compileExpressionList()
-        self.writeAdv() # ')'
-        #numOfarg = self.theSymbolTable.getID(callF)
-        numOfarg = self.theSymbolTable.getIDofClass(callF,self.className)
-        self.theVMWriter.writeCall(self.className+'.'+callF,str(numOfarg)) # never got hit for SquareGame
-        if self.theSymbolTable.getVoid(callF,self.className):
-          self.theVMWriter.writePop('temp','0')
-      elif lookAhead == '<symbol> . </symbol>\n': # call to another class
-        # subroutineName
-        # VM use THIS pointer
-        otherClassname = str(self.currentToken.split()[1])
-        self.writeAdv() # className|varName
-        self.writeAdv() # '.'
-        callF = str(self.currentToken.split()[1]) # subroutineName
-        self.writeAdv() # subroutineName
-        self.writeAdv() # '('
-        self.compileExpressionList()
-        self.writeAdv() # ')'
-        #numOfarg = self.theSymbolTable.getID(callF)
-        
-        # maybe other type of class check
-
-        realClassName = self.theSymbolTable.getType(otherClassname)
-
-        #print("otherClassname " + otherClassname)
-        #print("realClassName " + str(realClassName))
-        if self.theSymbolTable.getID(otherClassname) != None:
-          self.theVMWriter.writePush(self.theSymbolTable.getKind(otherClassname),self.theSymbolTable.getID(otherClassname))
-        # if it is not None then we have a object 
-        if realClassName != None:
-          numOfarg = self.theSymbolTable.getIDofClass(callF,realClassName)
-          self.theVMWriter.writeCall(realClassName+'.'+callF,str(numOfarg)) # never got hit for SquareGame
-          if self.theSymbolTable.getVoid(callF,realClassName):
-            self.theVMWriter.writePop('temp','0')
+    def _write_call_for_do(self, other_class_name: str, call_name: str) -> None:
+        """Write the VM call instruction for a do statement."""
+        if self.symbol_table.getKind(other_class_name) is None:
+            num_args = self.symbol_table.getIDofClass(call_name, other_class_name)
+            self.vm_writer.writeCall(f"{other_class_name}.{call_name}", str(num_args))
+            if self.symbol_table.getVoid(call_name, other_class_name):
+                self.vm_writer.writePop('temp', '0')
         else:
-          # only new from constructor in SquareGame.jack and keyPressed from Keyboard.keyPressed() call which is odd.
-          numOfarg = self.theSymbolTable.getIDofClass(callF,otherClassname)
-          self.theVMWriter.writeCall(otherClassname+'.'+callF,str(numOfarg)) 
-          if self.theSymbolTable.getVoid(callF,otherClassname):
-            self.theVMWriter.writePop('temp','0')
+            real_class_name = self.symbol_table.getType(other_class_name)
+            if real_class_name is not None:
+                num_args = self.symbol_table.getIDofClass(call_name, real_class_name)
+                self.vm_writer.writeCall(f"{real_class_name}.{call_name}", str(num_args))
+                if self.symbol_table.getVoid(call_name, real_class_name):
+                    self.vm_writer.writePop('temp', '0')
+            else:
+                num_args = self.symbol_table.getIDofClass(call_name, other_class_name)
+                self.vm_writer.writeCall(f"{other_class_name}.{call_name}", str(num_args))
+                if self.symbol_table.getVoid(call_name, other_class_name):
+                    self.vm_writer.writePop('temp', '0')
 
-        #f self.theSymbolTable.getVoid(callF):
-          #self.theVMWriter.writePop('temp','0')
-        #if callF == 'new': # already handled by let statement
-          #2+2
-          # if new pop the x address let x = stuff
-          #theNewAddress = str(self.tTp[almostNew-2].split()[1])
-          #theSegment = self.theSymbolTable.getKind(theNewAddress)
-          #theIndex = self.theSymbolTable.getID(theNewAddress)
-          #self.theVMWriter.writePop(theSegment,theIndex)
-      else: # varName
-        theSegment = self.theSymbolTable.getKind(VMToken)
-        theIndex = self.theSymbolTable.getID(VMToken)
-        self.theVMWriter.writePush(theSegment,theIndex)
-        self.writeAdv() # just a varName
-    elif daToken == '<integerConstant>':
-      self.theVMWriter.writePush('constant',VMToken)
-      self.writeAdv()
-    elif daToken == '<stringConstant>':
-      #if self.tTp[self.tokenCounter-1].split()[1] == '=':
-      arrayVMToken = self.currentToken.split()
-      #print(str(''.join(arrayVMToken[1:-1])))
-      eachletter = list(' '.join(arrayVMToken[1:-1]))
-      #print(eachletter)
-      self.theVMWriter.writePush('constant',len(eachletter))
-      self.theVMWriter.writeCall('String.new',1)
-      for i in range(len(eachletter)):
-        self.theVMWriter.writePush('constant',ord(eachletter[i]))
-        self.theVMWriter.writeCall('String.appendChar',2)
+    def _compile_let(self) -> None:
+        """Compile a let statement."""
+        self._write_indent()
+        self.output.write('<letStatement>\n')
+        self._increase_indent()
+
+        self._write_and_advance()  # 'let'
+        var_name = self._get_token_value()
+        self._write_and_advance()  # varName
         
-      self.writeAdv()
-    elif str(self.currentToken) == '<keyword> true </keyword>\n':
-      self.theVMWriter.writePush('constant',1)
-      self.theVMWriter.writeArithmetic('NEG')
-      self.writeAdv()
-    elif str(self.currentToken) == '<keyword> false </keyword>\n':
-      self.theVMWriter.writePush('constant',0)
-      self.writeAdv()
-    elif str(self.currentToken) == '<keyword> null </keyword>\n':
-      self.theVMWriter.writePush('constant',0)
-      self.writeAdv()
-    elif str(self.currentToken) == '<keyword> this </keyword>\n':
-      self.theVMWriter.writePush('pointer',0)
-      self.writeAdv()
-    elif str(self.currentToken) == '<symbol> ( </symbol>\n':
-      self.writeAdv() # for (
-      self.compileExpression()
-      self.writeAdv() # for )
-    elif str(self.currentToken) == '<symbol> - </symbol>\n':
-      # negative number
-      self.writeAdv()
-      self.compileTerm()
-      self.theVMWriter.writeArithmetic('NEG') # now write op
-    elif str(self.currentToken) == '<symbol> ~ </symbol>\n':
-      self.writeAdv()
-      self.compileTerm()
-      self.theVMWriter.writeArithmetic('~') # now write op
-    
-    
-    # end of term decrease indent
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</term>\n')
+        if str(self.current_token) == self.LBRACKET_TOKEN:
+            self.is_array = True
+            segment = self.symbol_table.getKind(var_name)
+            index = self.symbol_table.getID(var_name)
+            self.vm_writer.writePush(segment, index)
+            self._write_and_advance()  # '['
+            self._compile_expression()
+            self._write_and_advance()  # ']'
+            self.vm_writer.writeArithmetic('+')
+        
+        self._write_and_advance()  # '='
+        self._compile_expression()
+        self._write_and_advance()  # ';'
+        
+        if self.is_array:
+            self.vm_writer.writePop('temp', 0)
+            self.vm_writer.writePop('pointer', 1)
+            self.vm_writer.writePush('temp', 0)
+            self.vm_writer.writePop('that', 0)
+            self.is_array = False
+        else:
+            segment = self.symbol_table.getKind(var_name)
+            index = self.symbol_table.getID(var_name)
+            self.vm_writer.writePop(segment, index)
 
-    # check for op and then use recursion
-    if self.checkOp():
-      opTerm = str(self.currentToken.split()[1]) # save op to write after
-      self.writeAdv() # write the op term
-      self.compileTerm()
-      self.theVMWriter.writeArithmetic(opTerm) # now write op
-    return
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</letStatement>\n')
 
-  def compileExpressionList(self):
-    self.outIndent()
-    self.output1.write('<expressionList>\n')
-    self.increaseIndent()
+    def _compile_while(self) -> None:
+        """Compile a while statement."""
+        self._write_indent()
+        self.output.write('<whileStatement>\n')
+        self._increase_indent()
 
-    
-    # check if 
-    while self.checkMoreTerms():
-      # actually compile an expression if not empty
-      #print(self.currentToken)
-      self.compileExpression()
-      if str(self.currentToken) == '<symbol> , </symbol>\n':
-        self.writeAdv() # ','
+        label1 = f"whileL{self.while_label_counter}"
+        self.while_label_counter += 1
+        label2 = f"whileL{self.while_label_counter}"
+        self.while_label_counter += 1
+        
+        self.vm_writer.writeLabel(label1)
+        self._write_and_advance()  # 'while'
+        self._write_and_advance()  # '('
+        self._compile_expression()
+        
+        self.vm_writer.writeArithmetic('NOT')
+        self.vm_writer.writeIf(label2)
+        
+        self._write_and_advance()  # ')'
+        self._write_and_advance()  # '{'
+        self._compile_statements()
+        self._write_and_advance()  # '}'
+        
+        self.vm_writer.writeGoto(label1)
+        self.vm_writer.writeLabel(label2)
 
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</expressionList>\n')
-    return
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</whileStatement>\n')
 
-  def outIndent(self):
-    for i in range(self.indent):
-      # change be careful below was old
-      #self.output1.write('\t')
-      self.output1.write('  ')
-    return
+    def _compile_return(self) -> None:
+        """Compile a return statement."""
+        self._write_indent()
+        self.output.write('<returnStatement>\n')
+        self._increase_indent()
 
-  def advance(self):
-    self.tokenCounter += 1
-    self.currentToken = self.tTp[self.tokenCounter]
+        self._write_and_advance()  # 'return'
+        
+        if self._check_more_terms():
+            self._compile_expression()
+        
+        self._write_and_advance()  # ';'
+        
+        if self.subroutine_is_void:
+            self.vm_writer.writePush('constant', 0)
+        self.vm_writer.writeReturn()
 
-  def writeAdv(self):
-    self.outIndent()
-    self.output1.write(self.currentToken)
-    self.advance()
-    return
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</returnStatement>\n')
 
-  def increaseIndent(self):
-    self.indent += 1
-    return
+    def _compile_if(self) -> None:
+        """Compile an if statement."""
+        self._write_indent()
+        self.output.write('<ifStatement>\n')
+        self._increase_indent()
 
-  def decreaseIndent(self):
-    self.indent -= 1
-    return
+        self._write_and_advance()  # 'if'
+        self._write_and_advance()  # '('
+        self._compile_expression()
+        self._write_and_advance()  # ')'
 
-  def checkStatement(self):
-    if str(self.currentToken) == '<keyword> if </keyword>\n':
-      return True
-    elif str(self.currentToken) == '<keyword> let </keyword>\n':
-      return True
-    elif str(self.currentToken) == '<keyword> while </keyword>\n':
-      return True
-    elif str(self.currentToken) == '<keyword> do </keyword>\n':
-      return True
-    elif str(self.currentToken) == '<keyword> return </keyword>\n':
-      return True
-    else:
-      return False
+        self.vm_writer.writeArithmetic('NOT')
+        label1 = f"ifL{self.if_label_counter}"
+        self.if_label_counter += 1
+        self.vm_writer.writeIf(label1)
 
-  def checkOp(self):
-    if str(self.currentToken) == '<symbol> + </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> - </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> * </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> / </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> &amp; </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> | </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> &lt; </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> &gt; </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> = </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> ^ </symbol>\n':
-      return True
-    else:
-      return False
+        self._write_and_advance()  # '{'
+        self._compile_statements()
 
-  def checkMoreTerms(self):
+        label2 = f"ifL{self.if_label_counter}"
+        self.if_label_counter += 1
+        self.vm_writer.writeGoto(label2)
+        self.vm_writer.writeLabel(label1)
 
-    daToken = str(self.currentToken.split()[0])
+        self._write_and_advance()  # '}'
+        
+        if str(self.current_token) == self.ELSE_TOKEN:
+            self._write_and_advance()  # 'else'
+            self._write_and_advance()  # '{'
+            self._compile_statements()
+            self._write_and_advance()  # '}'
+        
+        self.vm_writer.writeLabel(label2)
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</ifStatement>\n')
 
-    if daToken == '<identifier>':
-      lookAhead = self.tTp[self.tokenCounter+1]
-      if lookAhead == '<symbol> [ </symbol>\n':
-        return True
-      elif lookAhead == '<symbol> ( </symbol>\n':
-        return True
-      elif lookAhead == '<symbol> . </symbol>\n':
-        return True
-      else:
-        return True
-    elif daToken == '<integerConstant>':
-      return True
-    elif daToken == '<stringConstant>':
-      return True
-    elif str(self.currentToken) == '<keyword> true </keyword>\n':
-      return True
-    elif str(self.currentToken) == '<keyword> false </keyword>\n':
-      return True
-    elif str(self.currentToken) == '<keyword> null </keyword>\n':
-      return True
-    elif str(self.currentToken) == '<keyword> this </keyword>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> ( </symbol>\n':
-      return True
-      #check unary Op
-    elif str(self.currentToken) == '<symbol> - </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> ~ </symbol>\n':
-      return True
-    else:
-      return False
-    
+    def _compile_expression(self) -> None:
+        """Compile an expression."""
+        self._write_indent()
+        self.output.write('<expression>\n')
+        self._increase_indent()
+
+        self._compile_term()
+        
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</expression>\n')
+
+    def _compile_term(self) -> None:
+        """Compile a term."""
+        self._write_indent()
+        self.output.write('<term>\n')
+        self._increase_indent()
+
+        token_type = str(self.current_token.split()[0])
+        vm_token = self._get_token_value()
+
+        if token_type == '<identifier>':
+            self._compile_identifier_term(vm_token)
+        elif token_type == '<integerConstant>':
+            self.vm_writer.writePush('constant', vm_token)
+            self._write_and_advance()
+        elif token_type == '<stringConstant>':
+            self._compile_string_constant()
+        elif str(self.current_token) == self.TRUE_TOKEN:
+            self.vm_writer.writePush('constant', 1)
+            self.vm_writer.writeArithmetic('NEG')
+            self._write_and_advance()
+        elif str(self.current_token) == self.FALSE_TOKEN:
+            self.vm_writer.writePush('constant', 0)
+            self._write_and_advance()
+        elif str(self.current_token) == self.NULL_TOKEN:
+            self.vm_writer.writePush('constant', 0)
+            self._write_and_advance()
+        elif str(self.current_token) == self.THIS_TOKEN:
+            self.vm_writer.writePush('pointer', 0)
+            self._write_and_advance()
+        elif str(self.current_token) == self.LPAREN_TOKEN:
+            self._write_and_advance()  # '('
+            self._compile_expression()
+            self._write_and_advance()  # ')'
+        elif str(self.current_token) == self.MINUS_TOKEN:
+            self._write_and_advance()
+            self._compile_term()
+            self.vm_writer.writeArithmetic('NEG')
+        elif str(self.current_token) == self.TILDE_TOKEN:
+            self._write_and_advance()
+            self._compile_term()
+            self.vm_writer.writeArithmetic('~')
+
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</term>\n')
+
+        if self._check_op():
+            op = self._get_token_value()
+            self._write_and_advance()
+            self._compile_term()
+            self.vm_writer.writeArithmetic(op)
+
+    def _compile_identifier_term(self, vm_token: str) -> None:
+        """Compile an identifier-based term."""
+        look_ahead = self.tokens[self.token_counter + 1]
+        
+        if look_ahead == self.LBRACKET_TOKEN:
+            # Array access
+            segment = self.symbol_table.getKind(vm_token)
+            index = self.symbol_table.getID(vm_token)
+            self.vm_writer.writePush(segment, index)
+            self._write_and_advance()  # varName
+            self._write_and_advance()  # '['
+            self._compile_expression()
+            self._write_and_advance()  # ']'
+            self.vm_writer.writeArithmetic('+')
+            self.vm_writer.writePop('pointer', '1')
+            self.vm_writer.writePush('that', '0')
+        elif look_ahead == self.LPAREN_TOKEN:
+            # Function call
+            call_name = vm_token
+            self.vm_writer.writePush('argument', '0')
+            self._write_and_advance()
+            self._write_and_advance()  # '('
+            self._compile_expression_list()
+            self._write_and_advance()  # ')'
+            num_args = self.symbol_table.getIDofClass(call_name, self.class_name)
+            self.vm_writer.writeCall(f"{self.class_name}.{call_name}", str(num_args))
+            if self.symbol_table.getVoid(call_name, self.class_name):
+                self.vm_writer.writePop('temp', '0')
+        elif look_ahead == self.DOT_TOKEN:
+            # Method call
+            other_class = vm_token
+            self._write_and_advance()  # className|varName
+            self._write_and_advance()  # '.'
+            call_name = self._get_token_value()
+            self._write_and_advance()  # subroutineName
+            self._write_and_advance()  # '('
+            self._compile_expression_list()
+            self._write_and_advance()  # ')'
+            
+            real_class = self.symbol_table.getType(other_class)
+            if self.symbol_table.getID(other_class) is not None:
+                self.vm_writer.writePush(
+                    self.symbol_table.getKind(other_class),
+                    self.symbol_table.getID(other_class)
+                )
+            
+            if real_class is not None:
+                num_args = self.symbol_table.getIDofClass(call_name, real_class)
+                self.vm_writer.writeCall(f"{real_class}.{call_name}", str(num_args))
+                if self.symbol_table.getVoid(call_name, real_class):
+                    self.vm_writer.writePop('temp', '0')
+            else:
+                num_args = self.symbol_table.getIDofClass(call_name, other_class)
+                self.vm_writer.writeCall(f"{other_class}.{call_name}", str(num_args))
+                if self.symbol_table.getVoid(call_name, other_class):
+                    self.vm_writer.writePop('temp', '0')
+        else:
+            # Simple variable
+            segment = self.symbol_table.getKind(vm_token)
+            index = self.symbol_table.getID(vm_token)
+            self.vm_writer.writePush(segment, index)
+            self._write_and_advance()
+
+    def _compile_string_constant(self) -> None:
+        """Compile a string constant."""
+        token_parts = self.current_token.split()
+        chars = list(' '.join(token_parts[1:-1]))
+        self.vm_writer.writePush('constant', len(chars))
+        self.vm_writer.writeCall('String.new', 1)
+        for char in chars:
+            self.vm_writer.writePush('constant', ord(char))
+            self.vm_writer.writeCall('String.appendChar', 2)
+        self._write_and_advance()
+
+    def _compile_expression_list(self) -> None:
+        """Compile an expression list."""
+        self._write_indent()
+        self.output.write('<expressionList>\n')
+        self._increase_indent()
+        
+        while self._check_more_terms():
+            self._compile_expression()
+            if str(self.current_token) == self.COMMA_TOKEN:
+                self._write_and_advance()
+
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</expressionList>\n')
+
+    def _write_indent(self) -> None:
+        """Write current indentation."""
+        self.output.write('  ' * self.indent)
+
+    def _advance(self) -> None:
+        """Advance to the next token."""
+        self.token_counter += 1
+        self.current_token = self.tokens[self.token_counter]
+
+    def _write_and_advance(self) -> None:
+        """Write current token and advance."""
+        self._write_indent()
+        self.output.write(self.current_token)
+        self._advance()
+
+    def _increase_indent(self) -> None:
+        """Increase indentation level."""
+        self.indent += 1
+
+    def _decrease_indent(self) -> None:
+        """Decrease indentation level."""
+        self.indent -= 1
+
+    def _check_statement(self) -> bool:
+        """Check if current token starts a statement."""
+        return str(self.current_token) in [
+            self.IF_TOKEN, self.LET_TOKEN, self.WHILE_TOKEN,
+            self.DO_TOKEN, self.RETURN_TOKEN
+        ]
+
+    def _check_op(self) -> bool:
+        """Check if current token is an operator."""
+        op_tokens = [
+            '<symbol> + </symbol>\n', '<symbol> - </symbol>\n',
+            '<symbol> * </symbol>\n', '<symbol> / </symbol>\n',
+            '<symbol> &amp; </symbol>\n', '<symbol> | </symbol>\n',
+            '<symbol> &lt; </symbol>\n', '<symbol> &gt; </symbol>\n',
+            '<symbol> = </symbol>\n', '<symbol> ^ </symbol>\n'
+        ]
+        return str(self.current_token) in op_tokens
+
+    def _check_more_terms(self) -> bool:
+        """Check if current token can start a term."""
+        token_type = str(self.current_token.split()[0])
+        
+        if token_type in ['<identifier>', '<integerConstant>', '<stringConstant>']:
+            return True
+        
+        return str(self.current_token) in [
+            self.TRUE_TOKEN, self.FALSE_TOKEN, self.NULL_TOKEN,
+            self.THIS_TOKEN, self.LPAREN_TOKEN, self.MINUS_TOKEN,
+            self.TILDE_TOKEN
+        ]

@@ -1,646 +1,383 @@
-def commandType(cmd1):
-  if "push" in cmd1:
-    return "C_PUSH"
-  elif "pop" in cmd1:
-    return "C_POP"
-  elif 'label' in cmd1:
-    return 'C_LABEL'
-  elif 'if' in cmd1:
-    return 'C_IF'
-  elif 'goto' in cmd1:
-    return 'C_GOTO'
-  elif 'function' in cmd1:
-    return 'C_FUNCTION'
-  elif 'call' in cmd1:
-    return 'C_CALL'
-  elif 'return' in cmd1:
-    return 'C_RETURN'
-  elif "add" or "sub" or 'neg' or 'eq' or 'gt' or 'lt' or 'and' or 'or' or 'not' in cmd1:
-    return "C_ARITHMETIC"
+"""
+VM Translator - Translates VM code to Hack assembly language.
 
-def getarg0(cmdarg0):
+Part of the Nand2Tetris course (Project 08).
+Handles stack arithmetic, memory access, program flow, and function commands.
+"""
 
-  arg0r = cmdarg0.split(' ')
-  if len(arg0r) > 0:
-    return arg0r[0]
-
-def getarg1(cmdarg1):
-
-  arg1r = cmdarg1.split(' ')
-  if len(arg1r) > 1:
-    return arg1r[1]
-
-def getarg2(cmdarg2):
-
-  arg2r = cmdarg2.split(' ')
-  if len(arg2r) > 2:
-
-    return int(arg2r[2])
-
-    # open the file and remove white space and comments
-
-def printarray(array1):
-  for i in array1:
-    output.write(i)
-    output.write('\n')
-  return
-
-def pushASM():
-  pushASMarray= ["@SP",'A=M','M=D','@SP','M=M+1']
-  printarray(pushASMarray)
-
-  return
-
-def addASM():
-  addASMarray= ["@SP",'M=M-1','A=M-1','D=M','@SP','A=M','D=D+M','@SP','A=M-1','M=D']
-  printarray(addASMarray)
-
-  return
-
-def subASM():
-  subASMarray= ["@SP",'M=M-1','A=M-1','D=M','@SP','A=M','D=D-M','@SP','A=M-1','M=D']
-  printarray(subASMarray)
-
-  return
-
-def negASM():
-  negASMarray= ["@SP",'A=M-1','D=-M','@SP','A=M-1','M=D']
-  printarray(negASMarray)
-
-  return
-
-def eqASM(i):
-  eqASMarray= [
-  "@SP",
-  'M=M-1',
-  "@SP",
-  'A=M-1',
-  'D=M',
-  '@SP',
-  'A=M',
-  'D=D-M',
-  '@TRUE'+str(i),
-  'D;JEQ',
-  '@SP',
-  'A=M-1',
-  'M=0',
-  '@END'+str(i),
-  '0;JMP',
-  '(TRUE'+str(i)+')',
-  '@SP',
-  'A=M-1',
-  'M=-1',
-  '(END'+str(i)+')'
-  ]
-  printarray(eqASMarray)
-
-  return
-
-def gtASM(i):
-  gtASMarray= [
-  "@SP",
-  'M=M-1',
-  "@SP",
-  'A=M-1',
-  'D=M',
-  '@SP',
-  'A=M',
-  'D=D-M',
-  '@TRUE'+str(i),
-  'D;JGT',
-  '@SP',
-  'A=M-1',
-  'M=0',
-  '@END'+str(i),
-  '0;JMP',
-  '(TRUE'+str(i)+')',
-  '@SP',
-  'A=M-1',
-  'M=-1',
-  '(END'+str(i)+')'
-  ]
-  printarray(gtASMarray)
-
-  return
-
-def ltASM(i):
-  ltASMarray= [
-  "@SP",
-  'M=M-1',
-  "@SP",
-  'A=M-1',
-  'D=M',
-  '@SP',
-  'A=M',
-  'D=D-M',
-  '@TRUE'+str(i),
-  'D;JLT',
-  '@SP',
-  'A=M-1',
-  'M=0',
-  '@END'+str(i),
-  '0;JMP',
-  '(TRUE'+str(i)+')',
-  '@SP',
-  'A=M-1',
-  'M=-1',
-  '(END'+str(i)+')'
-  ]
-  printarray(ltASMarray)
-
-  return
-
-def andASM():
-  andASMarray= [
-  "@SP",
-  'M=M-1',
-  "@SP",
-  'A=M-1',
-  'D=M',
-  '@SP',
-  'A=M',
-  'D=D&M',
-  '@SP',
-  'A=M-1',
-  'M=D'
-  ]
-  printarray(andASMarray)
-
-  return
-
-def orASM():
-  orASMarray= [
-  "@SP",
-  'M=M-1',
-  "@SP",
-  'A=M-1',
-  'D=M',
-  '@SP',
-  'A=M',
-  'D=D|M',
-  '@SP',
-  'A=M-1',
-  'M=D'
-  ]
-  printarray(orASMarray)
-
-  return
-
-def notASM():
-  notASMarray= [
-  "@SP",
-  'A=M-1',
-  'D=M',
-  'D=!D',
-  '@SP',
-  'A=M-1',
-  'M=D'
-  ]
-  printarray(notASMarray)
-
-  return
-
-# get the item to push to stack
-def pushitem(s,name):
-  arg1 = getarg1(s)
-  arg2 = getarg2(s)
-  if arg1 == 'constant':
-    output.write('@'+str(arg2))
-    output.write('\nD=A\n')
-  elif arg1 == 'argument':
-    argumentarray = [
-      '@'+str(arg2),
-      'D=A',
-      '@ARG',
-      'A=M+D',
-      'D=M'
-      ]
-    printarray(argumentarray)
-  elif arg1 == 'local':
-    localarray = [
-      '@'+str(arg2),
-      'D=A',
-      '@LCL',
-      'A=M+D',
-      'D=M'
-      ]
-    printarray(localarray)
-  elif arg1 == 'this':
-    thisarray = [
-      '@'+str(arg2),
-      'D=A',
-      '@THIS',
-      'A=M+D',
-      'D=M'
-      ]
-    printarray(thisarray)
-  elif arg1 == 'that':
-    thatarray = [
-      '@'+str(arg2),
-      'D=A',
-      '@THAT',
-      'A=M+D',
-      'D=M'
-      ]
-    printarray(thatarray)
-  elif arg1 == 'static':
-    staticarray = [
-      '@'+name+'.'+str(arg2),
-      'D=M'
-      ]
-    printarray(staticarray)
-  elif arg1 == 'pointer':
-    pointerarray = [
-      '@'+str(arg2),
-      'D=A',
-      '@THIS',
-      'A=A+D',
-      'D=M'
-      ]
-    printarray(pointerarray)
-  elif arg1 == 'temp':
-    temparray = [
-      '@'+str(arg2),
-      'D=A',
-      '@5',
-      'A=A+D',
-      'D=M'
-      ]
-    printarray(temparray)
-
-
-  return
-
-def popASM(s,name):
-
-  arg1 = getarg1(s)
-  arg2 = getarg2(s)
-
-  if arg1 != 'static':
-    popASMarray= ["@SP",'A=M-1','D=M','@R15','M=D','@'+str(arg2),'D=A']
-    printarray(popASMarray)
-
-
-  if arg1 == 'constant':
-    output.write('@'+str(arg2))
-    output.write('\nM=D\n')
-  elif arg1 == 'argument':
-    argumentarray = ['@ARG']
-    printarray(argumentarray)
-  elif arg1 == 'local':
-    localarray = ['@LCL']
-    printarray(localarray)
-  elif arg1 == 'this':
-    thisarray = ['@THIS']
-    printarray(thisarray)
-  elif arg1 == 'that':
-    thatarray = ['@THAT']
-    printarray(thatarray)
-  elif arg1 == 'static':
-    staticarray = ["@SP",'A=M-1','D=M',
-      '@'+name+'.'+str(arg2),'M=D'
-      ]
-    printarray(staticarray)
-  elif arg1 == 'pointer':
-    pointerarray = [
-      '@THIS',
-      'D=A+D'
-      ]
-    printarray(pointerarray)
-  elif arg1 == 'temp':
-    temparray = [
-      '@5',
-      'D=A+D'
-      ]
-    printarray(temparray)
-
-  popASMarrayend= [
-      'D=M+D',
-      '@R14',
-      'M=D',
-      '@R15',
-      'D=M',
-      '@R14',
-      'A=M',
-      'M=D',
-      '@SP',
-      'M=M-1'
-      ]
-
-
-  if arg1 == 'pointer' or arg1 =='temp':
-
-    printarray(['@R14','M=D','@R15','D=M','@R14','A=M','M=D','@SP','M=M-1'])
-  elif arg1 == 'static':
-    printarray(['@SP','M=M-1'])
-  else:
-    printarray(popASMarrayend)
-  return
-
-
-def writeInit():
-  Initarray = [
-      '@256',
-      'D=A',
-      '@SP',
-      'M=D'
-
-      ]
-  printarray(Initarray)
-  writeCall('Sys.init',0,0)
-  return
-
-def writeLabel(currentFunction,label):
-  labelarray = [
-      '('+str(currentFunction)+'$'+str(label)+')'
-      ]
-  printarray(labelarray)
-  return
-
-def writeLabelF(label):
-  labelarray = [
-      '('+str(label)+')'
-      ]
-  printarray(labelarray)
-  return
-
-def writeGoto(currentFunction,label):
-  Gotoarray = [
-      '@'+str(currentFunction)+'$'+str(label),
-      '0;JMP'
-      ]
-  printarray(Gotoarray)
-  return
-
-def writeGotoF(label):
-  Gotoarray = [
-      '@'+str(label),
-      '0;JMP'
-      ]
-  printarray(Gotoarray)
-  return
-
-def writeIf(currentFunction,label):
-  Ifarray = [
-      '@SP',
-      'M=M-1',
-      '@SP',
-      'A=M',
-      'D=M',
-      '@'+str(currentFunction)+'$'+str(label),
-      'D;JNE'
-      ]
-  printarray(Ifarray)
-  return
-
-def writeIfF(label):
-  Ifarray = [
-      '@SP',
-      'M=M-1',
-      '@SP',
-      'A=M',
-      'D=M',
-      '@'+str(label),
-      'D;JNE'
-      ]
-  printarray(Ifarray)
-  return
-
-def writeCall(functionName,numArgs,i):
-
-
-  printarray(['@'+'return-address'+str(i),'D=A',"@SP",'A=M','M=D','@SP','M=M+1'])
-  pushM('LCL')
-  pushM('ARG')
-  pushM('THIS')
-  pushM('THAT')
-  callarray = [
-      '@SP',
-      'D=M',
-      '@5',
-      'D=D-A',
-      '@'+str(numArgs),
-      'D=D-A',
-      '@ARG',
-      'M=D',
-      '@SP',
-      'D=M',
-      '@LCL',
-      'M=D'
-      ]
-  printarray(callarray)
-  writeGotoF(functionName)
-  writeLabelF('return-address'+str(i))
-
-  return
-
-def writeReturn():
-  # R13 is FRAME
-  # R14 is RET
-  returnarray = [
-      '@LCL',
-      'D=M',
-      '@R13',
-      'M=D',
-      '@5',
-      'A=D-A',
-      'D=M',
-      '@R14',
-      'M=D',
-
-      "@SP",'A=M-1','D=M','@ARG','A=M','M=D',
-      '@SP',
-      'M=M-1',
-
-      '@ARG',
-      'D=M+1',
-      '@SP',
-      'M=D',
-
-      '@R13',
-      'A=M-1',
-      'D=M',
-      '@THAT',
-      'M=D',
-
-      '@R13',
-      'A=M-1',
-      'A=A-1',
-      'D=M',
-      '@THIS',
-      'M=D',
-
-      '@R13',
-      'A=M-1',
-      'A=A-1',
-      'A=A-1',
-      'D=M',
-      '@ARG',
-      'M=D',
-
-      '@R13',
-      'A=M-1',
-      'A=A-1',
-      'A=A-1',
-      'A=A-1',
-      'D=M',
-      '@LCL',
-      'M=D',
-
-      '@14',
-      'A=M',
-      '0;JMP'
-
-      ]
-  printarray(returnarray)
-
-  return
-
-def writeFunction(functionName,numLocals):
-  writeLabelF(functionName)
-  i=0
-  while i < numLocals:
-    printarray(['@0','D=A',"@SP",'A=M','M=D','@SP','M=M+1'])
-    i+=1
-
-  return
-
-def pushM(item):
-  pushMASMarray= ['@'+str(item),'D=M',"@SP",'A=M','M=D','@SP','M=M+1']
-  printarray(pushMASMarray)
-
-  return
-
-import sys
 import os
-import glob
+import sys
 from pathlib import Path
-directoryName = sys.argv[1]
-#print(directoryName)
-#os.chdir(Path(directoryName).resolve())
+from typing import Optional
+
+# Global output file handle
+output = None
+
+# Arithmetic operations
+ARITHMETIC_OPS = ['add', 'sub', 'neg', 'eq', 'gt', 'lt', 'and', 'or', 'not']
 
 
-daRealpath = str(Path(sys.argv[1]).resolve())
-#print(os.path.normpath(daRealpath))
-#print(os.path.dirname(Path(sys.argv[1]).resolve()))
-#daRealpath = str(daRealpath.rpartition("/")[0])
-#print(daRealpath)
-#os.chdir(daRealpath) # changes the directory to the StaticsTest folder
-# if the input ends with .vm then the input is a file. So change the directory to the directory of that file
-InitVM = False
-if(sys.argv[1].endswith(".vm")):
-    #print("run for your life")
-    #print(os.path.dirname(Path(sys.argv[1]).resolve()))
-    daRealpath = str(daRealpath.rpartition("/")[0])
-    #print(daRealpath)
-    os.chdir(daRealpath)
-else:
-    # if the input is a directory, then we change to that directory
-    os.chdir(os.path.realpath(directoryName))
-    InitVM = True
-ASMFileName = str(os.getcwd())
-#print(os.getcwd())
-#print(os.getcwd())
-ASMFileName = ASMFileName.rpartition("/")[2]
-
-items = os.listdir(".") # gets all of the files in the directory
-
-items = os.listdir(".") # gets all of the files in the directory
-onlyVM = []
-for item in items:
-    if(item.endswith(".vm")):
-        onlyVM.append(item)
+def command_type(command: str) -> str:
+    """Determine the type of VM command."""
+    if "push" in command:
+        return "C_PUSH"
+    elif "pop" in command:
+        return "C_POP"
+    elif 'label' in command:
+        return 'C_LABEL'
+    elif 'if' in command:
+        return 'C_IF'
+    elif 'goto' in command:
+        return 'C_GOTO'
+    elif 'function' in command:
+        return 'C_FUNCTION'
+    elif 'call' in command:
+        return 'C_CALL'
+    elif 'return' in command:
+        return 'C_RETURN'
+    elif any(op in command for op in ARITHMETIC_OPS):
+        return "C_ARITHMETIC"
+    return ""
 
 
-
-#output = open('StaticsTest.asm','w')
-output = open(ASMFileName+ ".asm",'w')
-
-if(InitVM):
-    currentFunction1 = 'Sys.init'
-    writeInit()
-
-#for filename in glob.glob('*.vm'):
-for filename in onlyVM:
-
-  content = []
-  #print(filename)
-  with open(filename) as f:
-      for line in f:
-          line = line.split('//', 1)[0]
-          line = line.rstrip()
-          content.append(line)
-
-  content = [x.strip() for x in content]
-  content[:] = [item for item in content if item != '']
-
-  print(content)
-
-  #1st pass
-  n=2
-  currentFunction1 = 'main'
-
-  for command in content:
-    arg0 = getarg0(command)
-    arg1 = getarg1(command)
-    arg2 = getarg2(command)
-    #print(commandType(command))
-    #print(command)
-    #print(arg0)
-    #print(arg1)
-    #print(arg2)
-    #print(arg1find(command))
-    #print(arg2find(command))
-
-    # push assembly
-    if commandType(command) == 'C_PUSH':
-      # get arg to push onto stack
-
-      pushitem(command,filename[:filename.index('.')])
-
-      pushASM()
-
-    elif commandType(command) == 'C_ARITHMETIC':
-      if 'add' in command:
-        addASM()
-      elif 'sub' in command:
-        subASM()
-      elif 'neg' in command:
-        negASM()
-      elif 'eq' in command:
-        eqASM(n)
-        n+=1
-      elif 'gt' in command:
-        gtASM(n)
-        n+=1
-      elif 'lt' in command:
-        ltASM(n)
-        n+=1
-      elif 'and' in command:
-        andASM()
-      elif 'or' in command:
-        orASM()
-      elif 'not' in command:
-        notASM()
-    elif commandType(command) == 'C_POP':
-      popASM(command,filename[:filename.index('.')])
-    elif commandType(command) == 'C_GOTO':
-      writeGoto(currentFunction1,arg1)
-    elif commandType(command) == 'C_IF':
-      writeIf(currentFunction1,arg1)
-    elif commandType(command) == 'C_RETURN':
-      writeReturn()
-    elif commandType(command) == 'C_CALL':
-      writeCall(arg1,arg2,n)
-      n+=1
-    elif commandType(command) == 'C_FUNCTION':
-      currentFunction1 = arg1
-      writeFunction(arg1,arg2)
-    elif commandType(command) == 'C_LABEL':
-      writeLabel(currentFunction1,arg1)
-      #print(arg1)
-  #print(filename[:filename.index('.')])
+def get_arg0(command: str) -> Optional[str]:
+    """Get the command name (first part of VM command)."""
+    parts = command.split(' ')
+    if len(parts) > 0:
+        return parts[0]
+    return None
 
 
+def get_arg1(command: str) -> Optional[str]:
+    """Get the first argument of a VM command."""
+    parts = command.split(' ')
+    if len(parts) > 1:
+        return parts[1]
+    return None
 
-output.close()
+
+def get_arg2(command: str) -> Optional[int]:
+    """Get the second argument of a VM command."""
+    parts = command.split(' ')
+    if len(parts) > 2:
+        return int(parts[2])
+    return None
+
+
+def write_lines(lines: list) -> None:
+    """Write multiple lines of assembly code to output."""
+    for line in lines:
+        output.write(f"{line}\n")
+
+
+def write_push_asm() -> None:
+    """Write assembly code for pushing D register to stack."""
+    write_lines(["@SP", 'A=M', 'M=D', '@SP', 'M=M+1'])
+
+
+def write_add_asm() -> None:
+    """Write assembly code for add operation."""
+    write_lines(["@SP", 'M=M-1', 'A=M-1', 'D=M', '@SP', 'A=M', 'D=D+M', '@SP', 'A=M-1', 'M=D'])
+
+
+def write_sub_asm() -> None:
+    """Write assembly code for subtract operation."""
+    write_lines(["@SP", 'M=M-1', 'A=M-1', 'D=M', '@SP', 'A=M', 'D=D-M', '@SP', 'A=M-1', 'M=D'])
+
+
+def write_neg_asm() -> None:
+    """Write assembly code for negate operation."""
+    write_lines(["@SP", 'A=M-1', 'D=-M', '@SP', 'A=M-1', 'M=D'])
+
+
+def write_eq_asm(label_index: int) -> None:
+    """Write assembly code for equality comparison."""
+    write_lines([
+        "@SP", 'M=M-1', "@SP", 'A=M-1', 'D=M', '@SP', 'A=M', 'D=D-M',
+        f'@TRUE{label_index}', 'D;JEQ', '@SP', 'A=M-1', 'M=0',
+        f'@END{label_index}', '0;JMP', f'(TRUE{label_index})',
+        '@SP', 'A=M-1', 'M=-1', f'(END{label_index})'
+    ])
+
+
+def write_gt_asm(label_index: int) -> None:
+    """Write assembly code for greater-than comparison."""
+    write_lines([
+        "@SP", 'M=M-1', "@SP", 'A=M-1', 'D=M', '@SP', 'A=M', 'D=D-M',
+        f'@TRUE{label_index}', 'D;JGT', '@SP', 'A=M-1', 'M=0',
+        f'@END{label_index}', '0;JMP', f'(TRUE{label_index})',
+        '@SP', 'A=M-1', 'M=-1', f'(END{label_index})'
+    ])
+
+
+def write_lt_asm(label_index: int) -> None:
+    """Write assembly code for less-than comparison."""
+    write_lines([
+        "@SP", 'M=M-1', "@SP", 'A=M-1', 'D=M', '@SP', 'A=M', 'D=D-M',
+        f'@TRUE{label_index}', 'D;JLT', '@SP', 'A=M-1', 'M=0',
+        f'@END{label_index}', '0;JMP', f'(TRUE{label_index})',
+        '@SP', 'A=M-1', 'M=-1', f'(END{label_index})'
+    ])
+
+
+def write_and_asm() -> None:
+    """Write assembly code for bitwise AND operation."""
+    write_lines([
+        "@SP", 'M=M-1', "@SP", 'A=M-1', 'D=M', '@SP', 'A=M',
+        'D=D&M', '@SP', 'A=M-1', 'M=D'
+    ])
+
+
+def write_or_asm() -> None:
+    """Write assembly code for bitwise OR operation."""
+    write_lines([
+        "@SP", 'M=M-1', "@SP", 'A=M-1', 'D=M', '@SP', 'A=M',
+        'D=D|M', '@SP', 'A=M-1', 'M=D'
+    ])
+
+
+def write_not_asm() -> None:
+    """Write assembly code for bitwise NOT operation."""
+    write_lines(["@SP", 'A=M-1', 'D=M', 'D=!D', '@SP', 'A=M-1', 'M=D'])
+
+
+def write_push_item(command: str, filename: str) -> None:
+    """Write assembly code for push command based on segment."""
+    segment = get_arg1(command)
+    index = get_arg2(command)
+
+    segment_map = {
+        'argument': 'ARG',
+        'local': 'LCL',
+        'this': 'THIS',
+        'that': 'THAT'
+    }
+
+    if segment == 'constant':
+        output.write(f'@{index}\nD=A\n')
+    elif segment in segment_map:
+        write_lines([f'@{index}', 'D=A', f'@{segment_map[segment]}', 'A=M+D', 'D=M'])
+    elif segment == 'static':
+        write_lines([f'@{filename}.{index}', 'D=M'])
+    elif segment == 'pointer':
+        write_lines([f'@{index}', 'D=A', '@THIS', 'A=A+D', 'D=M'])
+    elif segment == 'temp':
+        write_lines([f'@{index}', 'D=A', '@5', 'A=A+D', 'D=M'])
+
+
+def write_pop_asm(command: str, filename: str) -> None:
+    """Write assembly code for pop command based on segment."""
+    segment = get_arg1(command)
+    index = get_arg2(command)
+
+    segment_map = {
+        'argument': '@ARG',
+        'local': '@LCL',
+        'this': '@THIS',
+        'that': '@THAT'
+    }
+
+    if segment != 'static':
+        write_lines(["@SP", 'A=M-1', 'D=M', '@R15', 'M=D', f'@{index}', 'D=A'])
+
+    if segment == 'constant':
+        output.write(f'@{index}\nM=D\n')
+    elif segment in segment_map:
+        write_lines([segment_map[segment]])
+    elif segment == 'static':
+        write_lines(["@SP", 'A=M-1', 'D=M', f'@{filename}.{index}', 'M=D'])
+    elif segment == 'pointer':
+        write_lines(['@THIS', 'D=A+D'])
+    elif segment == 'temp':
+        write_lines(['@5', 'D=A+D'])
+
+    # Write ending code based on segment type
+    if segment in ['pointer', 'temp']:
+        write_lines(['@R14', 'M=D', '@R15', 'D=M', '@R14', 'A=M', 'M=D', '@SP', 'M=M-1'])
+    elif segment == 'static':
+        write_lines(['@SP', 'M=M-1'])
+    elif segment != 'constant':
+        write_lines(['D=M+D', '@R14', 'M=D', '@R15', 'D=M', '@R14', 'A=M', 'M=D', '@SP', 'M=M-1'])
+
+
+def write_init() -> None:
+    """Write VM bootstrap code."""
+    write_lines(['@256', 'D=A', '@SP', 'M=D'])
+    write_call('Sys.init', 0, 0)
+
+
+def write_label(current_function: str, label: str) -> None:
+    """Write assembly code for label command."""
+    write_lines([f'({current_function}${label})'])
+
+
+def write_label_function(label: str) -> None:
+    """Write assembly code for function label."""
+    write_lines([f'({label})'])
+
+
+def write_goto(current_function: str, label: str) -> None:
+    """Write assembly code for goto command."""
+    write_lines([f'@{current_function}${label}', '0;JMP'])
+
+
+def write_goto_function(label: str) -> None:
+    """Write assembly code for function goto."""
+    write_lines([f'@{label}', '0;JMP'])
+
+
+def write_if(current_function: str, label: str) -> None:
+    """Write assembly code for if-goto command."""
+    write_lines([
+        '@SP', 'M=M-1', '@SP', 'A=M', 'D=M',
+        f'@{current_function}${label}', 'D;JNE'
+    ])
+
+
+def write_if_function(label: str) -> None:
+    """Write assembly code for function if-goto."""
+    write_lines([
+        '@SP', 'M=M-1', '@SP', 'A=M', 'D=M',
+        f'@{label}', 'D;JNE'
+    ])
+
+
+def write_call(function_name: str, num_args: int, label_index: int) -> None:
+    """Write assembly code for call command."""
+    write_lines([f'@return-address{label_index}', 'D=A', "@SP", 'A=M', 'M=D', '@SP', 'M=M+1'])
+    push_memory('LCL')
+    push_memory('ARG')
+    push_memory('THIS')
+    push_memory('THAT')
+    write_lines([
+        '@SP', 'D=M', '@5', 'D=D-A', f'@{num_args}', 'D=D-A',
+        '@ARG', 'M=D', '@SP', 'D=M', '@LCL', 'M=D'
+    ])
+    write_goto_function(function_name)
+    write_label_function(f'return-address{label_index}')
+
+
+def write_return() -> None:
+    """Write assembly code for return command."""
+    # R13 is FRAME, R14 is RET
+    write_lines([
+        '@LCL', 'D=M', '@R13', 'M=D',
+        '@5', 'A=D-A', 'D=M', '@R14', 'M=D',
+        "@SP", 'A=M-1', 'D=M', '@ARG', 'A=M', 'M=D',
+        '@SP', 'M=M-1',
+        '@ARG', 'D=M+1', '@SP', 'M=D',
+        '@R13', 'A=M-1', 'D=M', '@THAT', 'M=D',
+        '@R13', 'A=M-1', 'A=A-1', 'D=M', '@THIS', 'M=D',
+        '@R13', 'A=M-1', 'A=A-1', 'A=A-1', 'D=M', '@ARG', 'M=D',
+        '@R13', 'A=M-1', 'A=A-1', 'A=A-1', 'A=A-1', 'D=M', '@LCL', 'M=D',
+        '@R14', 'A=M', '0;JMP'
+    ])
+
+
+def write_function(function_name: str, num_locals: int) -> None:
+    """Write assembly code for function command."""
+    write_label_function(function_name)
+    for _ in range(num_locals):
+        write_lines(['@0', 'D=A', "@SP", 'A=M', 'M=D', '@SP', 'M=M+1'])
+
+
+def push_memory(item: str) -> None:
+    """Push a memory segment pointer to the stack."""
+    write_lines([f'@{item}', 'D=M', "@SP", 'A=M', 'M=D', '@SP', 'M=M+1'])
+
+
+def main() -> None:
+    """Main function to translate VM files to assembly."""
+    global output
+
+    directory_name = sys.argv[1]
+    real_path = str(Path(sys.argv[1]).resolve())
+
+    # Handle file vs directory input
+    init_vm = False
+    if sys.argv[1].endswith(".vm"):
+        real_path = str(real_path.rpartition("/")[0])
+        os.chdir(real_path)
+    else:
+        os.chdir(os.path.realpath(directory_name))
+        init_vm = True
+
+    asm_filename = os.getcwd().rpartition("/")[2]
+
+    # Get all .vm files
+    vm_files = [f for f in os.listdir(".") if f.endswith(".vm")]
+
+    output = open(f"{asm_filename}.asm", 'w')
+
+    # Write bootstrap code if processing a directory
+    if init_vm:
+        current_function = 'Sys.init'
+        write_init()
+
+    for vm_file in vm_files:
+        content = []
+        with open(vm_file) as f:
+            for line in f:
+                line = line.split('//', 1)[0].strip()
+                if line:
+                    content.append(line)
+
+        print(content)
+
+        base_name = vm_file[:vm_file.index('.')]
+        label_counter = 2
+        current_function = 'main'
+
+        for command in content:
+            arg0 = get_arg0(command)
+            arg1 = get_arg1(command)
+            arg2 = get_arg2(command)
+            cmd_type = command_type(command)
+
+            if cmd_type == 'C_PUSH':
+                write_push_item(command, base_name)
+                write_push_asm()
+            elif cmd_type == 'C_ARITHMETIC':
+                if 'add' in command:
+                    write_add_asm()
+                elif 'sub' in command:
+                    write_sub_asm()
+                elif 'neg' in command:
+                    write_neg_asm()
+                elif 'eq' in command:
+                    write_eq_asm(label_counter)
+                    label_counter += 1
+                elif 'gt' in command:
+                    write_gt_asm(label_counter)
+                    label_counter += 1
+                elif 'lt' in command:
+                    write_lt_asm(label_counter)
+                    label_counter += 1
+                elif 'and' in command:
+                    write_and_asm()
+                elif 'or' in command:
+                    write_or_asm()
+                elif 'not' in command:
+                    write_not_asm()
+            elif cmd_type == 'C_POP':
+                write_pop_asm(command, base_name)
+            elif cmd_type == 'C_GOTO':
+                write_goto(current_function, arg1)
+            elif cmd_type == 'C_IF':
+                write_if(current_function, arg1)
+            elif cmd_type == 'C_RETURN':
+                write_return()
+            elif cmd_type == 'C_CALL':
+                write_call(arg1, arg2, label_counter)
+                label_counter += 1
+            elif cmd_type == 'C_FUNCTION':
+                current_function = arg1
+                write_function(arg1, arg2)
+            elif cmd_type == 'C_LABEL':
+                write_label(current_function, arg1)
+
+    output.close()
+
+
+if __name__ == "__main__":
+    main()

@@ -1,123 +1,146 @@
-from Tokenizer import tokenType,tokenWrap,insideAstring
-'''
-from Parser import compileClass,compileClassVarDec,compileSubroutine,compileParameterList,compileVarDec,compileStatements,compileDo,compileLet,compileWhile,compileReturn,compileIf,compileExpression, compileTerm,compileExpressionList
-'''
+"""
+Main module for Jack language syntax analysis.
+
+This module serves as an alternative entry point for the Jack Analyzer,
+providing the same functionality as JackAnalyzer.py.
+"""
+
+import os
+import sys
+from pathlib import Path
+from typing import List
 
 from Parser import Parser
+from Tokenizer import get_token_type, is_inside_string, token_wrap
 
-nonTerminals = ['class','classVarDec','subroutineDec','parameterList','subroutineBody','varDec','statements','whileStatement','ifStatement','returnStatement','letStatement','doStatement','expression','term','expressionList']
 
-import sys
-import os
-import glob
-from pathlib import Path
-directoryName = sys.argv[1]
+def read_jack_file(filename: str) -> List[str]:
+    """
+    Read and preprocess a Jack source file.
 
-daRealpath = str(Path(sys.argv[1]).resolve())
+    Removes comments and whitespace, returning clean source lines.
 
-# if the input ends with .vm then the input is a file. So change the directory to the directory of that file
-if(sys.argv[1].endswith(".jack")):
-    daRealpath = str(daRealpath.rpartition("/")[0])
-    os.chdir(daRealpath)
-else:
-    # if the input is a directory, then we change to that directory
-    os.chdir(os.path.realpath(directoryName))
+    Args:
+        filename: Path to the Jack source file.
 
-# now that the cwd is correct, we get the filename
-ASMFileName = str(os.getcwd())
-ASMFileName = ASMFileName.rpartition("/")[2]
-items = os.listdir(".") # gets all of the files in the directory
-onlyjack = []
-for item in items:
-    if(item.endswith(".jack")):
-        onlyjack.append(item)
-
-#output = open(ASMFileName+ ".asm",'w')
-
-#for filename in glob.glob('*.vm'):
-for filename in onlyjack:
-
-  #content = []
-#import glob
-
-#for filename in glob.glob('*.jack'):
-
-  content = []
-  #print(filename)
-  with open(filename) as f:
-      for line in f:
-              line = line.lstrip(' ') # this will take away the leading whitespace
-              # check if the line starts with the symbols for comments
-              if( not (line.startswith("//") or line.startswith("/**") or line.startswith("*") or line.startswith("*/"))):
-                # if there is a trailing comment then remove it
+    Returns:
+        List of cleaned source code lines.
+    """
+    content: List[str] = []
+    with open(filename) as f:
+        for line in f:
+            line = line.lstrip(' ')
+            # Skip comment lines
+            if not (line.startswith("//") or line.startswith("/**") or
+                    line.startswith("*") or line.startswith("*/")):
+                # Remove trailing comments
                 line = line.split('//', 1)[0]
                 line = line.rstrip()
                 content.append(line)
 
-  content = [x.strip() for x in content]
-  content[:] = [item for item in content if item != '']
-  #output = open(filename[:filename.index('.')]+'.xml','w')
-  output_string = str(filename[:filename.index('.')])+'.xml'
-  output_Token_string = str(filename[:filename.index('.')])+'Token'+'.xml'
-  output = open(output_Token_string,'w')
-  tokenArray = []
-  tokenToPrint=[]
-  stringcounter = 0
-  for item in content:
-    #print(item)
-    for letter in item:
-      #print(letter)
-
-      # use mod (%) to tell if in string or not
-      if letter == '"':
-        stringcounter += 1
-
-      if insideAstring(stringcounter):
-        # we are still in a string so just print everything until end of string
-        tokenArray.append(letter) # take all values till " sign
-      elif letter != ' ':
-        #print(letter)
-
-        if tokenType(letter) == 'symbol':
-          tokenToPrint.append(''.join(tokenArray))
-          tokenArray = []
-          tokenArray.append(letter)
-          #print(''.join(tokenArray))
-          tokenToPrint.append(''.join(tokenArray))
-          tokenArray = []
-        else:
-          tokenArray.append(letter)
-
-      else:
-        #print(''.join(tokenArray))
-        tokenToPrint.append(''.join(tokenArray))
-        tokenArray = []
+    # Clean and filter empty lines
+    content = [x.strip() for x in content]
+    return [item for item in content if item != '']
 
 
+def tokenize_content(content: List[str]) -> List[str]:
+    """
+    Tokenize Jack source content into a list of tokens.
 
-  tokenToPrint = [x.strip() for x in tokenToPrint]
-  tokenToPrint[:] = [item for item in tokenToPrint if item != '']
-  #print(tokenToPrint)
+    Args:
+        content: List of preprocessed source lines.
 
-  # Take tokens and wrap in XML
+    Returns:
+        List of token strings.
+    """
+    token_buffer: List[str] = []
+    tokens: List[str] = []
+    quote_counter: int = 0
 
-  XMLTokensList = ['<tokens>']
-  for token in tokenToPrint:
-    tokenWrap(XMLTokensList,token)
-    #print(token)
-  XMLTokensList.append('</tokens>')
+    for line in content:
+        for char in line:
+            # Track string literal boundaries
+            if char == '"':
+                quote_counter += 1
 
-  # take the xml wrapped tokens and output to output file
-  for item in XMLTokensList:
-    #print(item)
-    output.write(item)
-    output.write('\n')
-  output.close()
-  #print(XMLTokensList)
-  XMLTokensList.clear()
+            if is_inside_string(quote_counter):
+                token_buffer.append(char)
+            elif char != ' ':
+                if get_token_type(char) == 'symbol':
+                    tokens.append(''.join(token_buffer))
+                    token_buffer = [char]
+                    tokens.append(''.join(token_buffer))
+                    token_buffer = []
+                else:
+                    token_buffer.append(char)
+            else:
+                tokens.append(''.join(token_buffer))
+                token_buffer = []
+
+    # Clean and filter empty tokens
+    tokens = [x.strip() for x in tokens]
+    return [item for item in tokens if item != '']
 
 
-  # Now Parse the tokens
-  #print(output_Token_string,output_string)
+def write_token_xml(tokens: List[str], output_path: str) -> None:
+    """
+    Write tokens to an XML file.
 
-  da_output = Parser(output_Token_string,output_string)
+    Args:
+        tokens: List of token strings.
+        output_path: Path for the output XML file.
+    """
+    xml_tokens: List[str] = ['<tokens>']
+    for token in tokens:
+        token_wrap(xml_tokens, token)
+    xml_tokens.append('</tokens>')
+
+    with open(output_path, 'w') as output:
+        for item in xml_tokens:
+            output.write(item)
+            output.write('\n')
+
+
+def process_jack_file(filename: str) -> None:
+    """
+    Process a single Jack file through tokenization and parsing.
+
+    Args:
+        filename: Name of the Jack source file.
+    """
+    base_name = filename[:filename.index('.')]
+    output_xml = f'{base_name}.xml'
+    token_xml = f'{base_name}Token.xml'
+
+    content = read_jack_file(filename)
+    tokens = tokenize_content(content)
+    write_token_xml(tokens, token_xml)
+    Parser(token_xml, output_xml)
+
+
+def main() -> None:
+    """Main entry point for the Jack Analyzer."""
+    if len(sys.argv) < 2:
+        print("Usage: python Main.py <file.jack | directory>")
+        sys.exit(1)
+
+    input_path = sys.argv[1]
+    real_path = str(Path(input_path).resolve())
+
+    # Determine working directory
+    if input_path.endswith(".jack"):
+        work_dir = str(Path(real_path).parent)
+        os.chdir(work_dir)
+    else:
+        os.chdir(os.path.realpath(input_path))
+
+    # Find all Jack files
+    jack_files = [f for f in os.listdir(".") if f.endswith(".jack")]
+
+    # Process each Jack file
+    for filename in jack_files:
+        process_jack_file(filename)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,75 +1,80 @@
-keywords = ['class','constructor','function','method','field','static','var','int','char','boolean','void','true','false','null','this','let','do','if','else','while','return']
+"""
+Jack Tokenizer - Lexical analyzer for Jack programming language.
 
-symbol = ['{','}','(',')','[',']','.',',',';','+','-','*','/','&','|','<','>','=','~']
+Breaks Jack source code into tokens for parsing.
+Part of the Nand2Tetris course (Project 10).
+"""
+
+from typing import List
+
+# Jack language keywords
+KEYWORDS = [
+    'class', 'constructor', 'function', 'method', 'field', 'static',
+    'var', 'int', 'char', 'boolean', 'void', 'true', 'false', 'null',
+    'this', 'let', 'do', 'if', 'else', 'while', 'return'
+]
+
+# Jack language symbols
+SYMBOLS = ['{', '}', '(', ')', '[', ']', '.', ',', ';', '+', '-', '*', '/', '&', '|', '<', '>', '=', '~']
+
+# Non-terminal grammar elements
+NON_TERMINALS = [
+    'class', 'classVarDec', 'subroutineDec', 'parameterList', 'subroutineBody',
+    'varDec', 'statements', 'whileStatement', 'ifStatement', 'returnStatement',
+    'letStatement', 'doStatement', 'expression', 'term', 'expressionList'
+]
 
 
-nonTerminals = ['class','classVarDec','subroutineDec','parameterList','subroutineBody','varDec','statements','whileStatement','ifStatement','returnStatement','letStatement','doStatement','expression','term','expressionList']
+def print_xml_tag(token_list: List[str], content: str, tag: str) -> None:
+    """Append an XML-wrapped token to the token list."""
+    token_list.append(f'<{tag}> {content} </{tag}>')
 
 
-def printXMLTag(daList,middle,tags):
-  # took the '\t' out to parse now, used to have it first
-  
-  #XMLList.append('<'+str(tags)+'> '+str(middle)+' </'+str(tags)+'>')
-  daList.append('<'+str(tags)+'> '+str(middle)+' </'+str(tags)+'>')
-  #print('<'+str(tags)+'>'+str(middle)+'</'+str(tags)+'>')
-  
-  
-def tokenType(input):
-  
-  for item in keywords:
-    if input == item:
-      return 'keyword'
-      
-  L = list(str(input))
-  for item in L:
-    if item == '"' or item == "'":
-      return 'stringConstant'
-  
-  for item in symbol:
-    if input == item:
-      return 'symbol'
-  
-  if input.isdigit():
-    return 'integerConstant'
-  
-  if isinstance(input, str):
-    return 'identifier'
-    
-  
-  return 
+def token_type(token: str) -> str:
+    """Determine the type of a token."""
+    if token in KEYWORDS:
+        return 'keyword'
 
-def insideAstring(daCounter):
-  if daCounter % 2 == 1:
-    return True 
-  else:
-    return False
+    if any(char in ['"', "'"] for char in token):
+        return 'stringConstant'
 
-def tokenWrap(daList,input):
-  
-  #non Terminals
-  if tokenType(input)   == 'class':
-    2+2
-  
-  
-  #  Terminals  
-  if tokenType(input)   == 'symbol':
-    if input == '>':
-      printXMLTag(daList,'&gt;','symbol')
-    elif input == '<':
-      printXMLTag(daList,'&lt;','symbol')
-    elif input == '&':
-      printXMLTag(daList,'&amp;','symbol')
-    else:
-      printXMLTag(daList,input,'symbol')
-  elif tokenType(input) == 'keyword':
-    printXMLTag(daList,input,'keyword')
-  elif tokenType(input) == 'stringConstant':
-    string1 = str(input)
-    printXMLTag(daList,string1.strip('"'),'stringConstant')
-  elif tokenType(input) == 'integerConstant':
-    printXMLTag(daList,input,'integerConstant')
-  elif tokenType(input) == 'identifier':
-    printXMLTag(daList,input,'identifier')
-  
-  return
+    if token in SYMBOLS:
+        return 'symbol'
+
+    if token.isdigit():
+        return 'integerConstant'
+
+    if isinstance(token, str):
+        return 'identifier'
+
+    return ''
+
+
+def inside_a_string(counter: int) -> bool:
+    """Check if currently inside a string literal (odd quote count)."""
+    return counter % 2 == 1
+
+
+def token_wrap(token_list: List[str], token: str) -> None:
+    """Wrap a token in appropriate XML tags and add to list."""
+    ttype = token_type(token)
+
+    if ttype == 'symbol':
+        # Escape special XML characters
+        if token == '>':
+            print_xml_tag(token_list, '&gt;', 'symbol')
+        elif token == '<':
+            print_xml_tag(token_list, '&lt;', 'symbol')
+        elif token == '&':
+            print_xml_tag(token_list, '&amp;', 'symbol')
+        else:
+            print_xml_tag(token_list, token, 'symbol')
+    elif ttype == 'keyword':
+        print_xml_tag(token_list, token, 'keyword')
+    elif ttype == 'stringConstant':
+        print_xml_tag(token_list, token.strip('"'), 'stringConstant')
+    elif ttype == 'integerConstant':
+        print_xml_tag(token_list, token, 'integerConstant')
+    elif ttype == 'identifier':
+        print_xml_tag(token_list, token, 'identifier')
 

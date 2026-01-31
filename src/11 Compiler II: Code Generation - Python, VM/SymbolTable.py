@@ -1,223 +1,293 @@
+"""
+Symbol Table module for the Jack compiler.
+
+This module provides data structures for managing symbol tables during
+compilation, tracking variables, their types, kinds, and scope.
+"""
+
+from typing import Any, Dict, Optional
+
+
 class Node:
-  def __init__(self,hashTable,addnext_node = None):
-    # each node will consist of a hashTable and the pointer that points to the next hashTable
-    self.hashTable = hashTable
-    self.nextnode = addnext_node
+    """A node in the linked list containing a symbol table entry."""
 
-  def setNext(self,addnext_node):
-    self.nextnode = addnext_node
-  
-  def getNext(self):
-    return self.nextnode
+    def __init__(self, hash_table: Dict[str, Any], next_node: 'Node' = None):
+        """
+        Initialize a node with a hash table entry.
 
-  def getHashTable(self):
-    return self.hashTable
+        Args:
+            hash_table: Dictionary containing symbol information.
+            next_node: Reference to the next node in the list.
+        """
+        self.hash_table = hash_table
+        self.next_node = next_node
+
+    def set_next(self, next_node: 'Node') -> None:
+        """Set the reference to the next node."""
+        self.next_node = next_node
+
+    def get_next(self) -> Optional['Node']:
+        """Get the reference to the next node."""
+        return self.next_node
+
+    def get_hash_table(self) -> Dict[str, Any]:
+        """Get the hash table stored in this node."""
+        return self.hash_table
+
 
 class LinkedList:
-  def __init__(self):
-    self.first_node = None
-  
-  def insert(self,hashTable):
-    inserted_node = Node(hashTable)
-    inserted_node.setNext(self.first_node)
-    self.first_node = inserted_node
+    """A linked list for storing symbol table entries."""
 
-  def resetMethodTable(self):
-    self.first_node = None
+    def __init__(self):
+        """Initialize an empty linked list."""
+        self.first_node: Optional[Node] = None
 
-  def viewTable(self):
-    start = self.first_node
-    #print(start.getNext())
-    # run through linked list of nodes to print each one
-    while start != None:
-      #print('hello')
-      print(start.getHashTable())
-      for keys in start.getHashTable():
-        #print(keys)
-        values = start.getHashTable()[keys]
-        #print(values)
-      # get the next node
-      start = start.getNext()
-  
-  def transverse(self,key,identifier):
-    start = self.first_node
-    #print(start.getNext())
-    # run through linked list of nodes to print each one
-    while start != None:
-      #look at the keys and their values
-      #for keys in start.getHashTable():
-        #print(keys)
-        #values = start.getHashTable()[keys]
-        
-        #print(values)
-      value = start.getHashTable()['name']
-      if identifier == value:
-        #print(start.getHashTable()[key])
-        #print(identifier)
-        if key in start.getHashTable():
-          return start.getHashTable()[key]
-      # get the next node
-      start = start.getNext()
-    return None
+    def insert(self, hash_table: Dict[str, Any]) -> None:
+        """Insert a new entry at the beginning of the list."""
+        inserted_node = Node(hash_table)
+        inserted_node.set_next(self.first_node)
+        self.first_node = inserted_node
 
-  def transverseTwoInputs(self,key,identifier,LookupclassName):
-    start = self.first_node
-    #print(start.getNext())
-    # run through linked list of nodes to print each one
-    while start != None:
-      #look at the keys and their values
-      
-      # check if the identifier you are looking for is there 
-      value = start.getHashTable()['name']
-      kind  = start.getHashTable()['kind']
-      # make sure the kind is the other class name. More than one function/method. ie new() method for multiple classes with different number of args so we need to figure out how many args to call by finding the function that relates to that class 
-      if (identifier == value) and (LookupclassName == kind ):
-        #print(start.getHashTable()[key])
-        #print(identifier)
-        if key in start.getHashTable():
-          return start.getHashTable()[key]
-      # get the next node
-      start = start.getNext()
-    return None
+    def reset_method_table(self) -> None:
+        """Clear the linked list."""
+        self.first_node = None
+
+    def view_table(self) -> None:
+        """Print all entries in the linked list for debugging."""
+        current = self.first_node
+        while current is not None:
+            print(current.get_hash_table())
+            current = current.get_next()
+
+    def traverse(self, key: str, identifier: str) -> Optional[Any]:
+        """
+        Search for a value by identifier name.
+
+        Args:
+            key: The key to retrieve from the matching entry.
+            identifier: The name to search for.
+
+        Returns:
+            The value for the key if found, None otherwise.
+        """
+        current = self.first_node
+        while current is not None:
+            if current.get_hash_table()['name'] == identifier:
+                if key in current.get_hash_table():
+                    return current.get_hash_table()[key]
+            current = current.get_next()
+        return None
+
+    def traverse_two_inputs(self, key: str, identifier: str,
+                            lookup_class_name: str) -> Optional[Any]:
+        """
+        Search for a value by identifier and class name.
+
+        Args:
+            key: The key to retrieve from the matching entry.
+            identifier: The name to search for.
+            lookup_class_name: The class name to match against kind.
+
+        Returns:
+            The value for the key if found, None otherwise.
+        """
+        current = self.first_node
+        while current is not None:
+            entry = current.get_hash_table()
+            if entry['name'] == identifier and entry['kind'] == lookup_class_name:
+                if key in entry:
+                    return entry[key]
+            current = current.get_next()
+        return None
+
 
 class SymbolTable:
-  def __init__(self):
-    self.classSymbolTable = LinkedList()
-    self.methodSymbolTable = LinkedList()
-    self.staticCount = 0
-    self.fieldCount = 0
-    self.argumentCount = 0
-    self.totalvarCount = 0
+    """
+    Symbol table for managing variable and subroutine symbols.
 
+    Maintains separate tables for class-level and method-level symbols.
+    """
 
-  def startSubroutine(self):
-    # clear the subroutine hashtable and reset argument count
-    self.methodSymbolTable.resetMethodTable()
-    self.argumentCount = 0
-    self.totalvarCount = 0
-    return
+    def __init__(self):
+        """Initialize the symbol table with empty tables and counters."""
+        self.class_symbol_table = LinkedList()
+        self.method_symbol_table = LinkedList()
+        self.static_count = 0
+        self.field_count = 0
+        self.argument_count = 0
+        self.total_var_count = 0
 
-  def varCount(self,kind):
-    if kind == 'var':
-      return self.totalvarCount
-    elif kind == 'argument':
-      return (self.argumentCount-1)
-    elif kind == 'field':
-      return self.fieldCount
-    elif kind == 'static':
-      return self.staticCount
+    def start_subroutine(self) -> None:
+        """Clear the method symbol table for a new subroutine."""
+        self.method_symbol_table.reset_method_table()
+        self.argument_count = 0
+        self.total_var_count = 0
 
-  def classStart(self):
-    self.fieldCount = 0 
-    self.staticCount = 0
-    return
+    def var_count(self, kind: str) -> int:
+        """Get the count of variables of a given kind."""
+        if kind == 'var':
+            return self.total_var_count
+        elif kind == 'argument':
+            return self.argument_count - 1
+        elif kind == 'field':
+            return self.field_count
+        elif kind == 'static':
+            return self.static_count
+        return 0
 
-  def addID(self,name,theType,kind):
-    
-    if kind == 'var':
-      self.totalvarCount += 1
-      return (self.totalvarCount - 1)
-    elif theType == 'method':
-      return (self.argumentCount)
-    elif kind == 'argument':
-      self.argumentCount += 1
-      return (self.argumentCount - 1)
-    elif kind == 'static':
-      self.staticCount += 1
-      return (self.staticCount - 1)
-    elif kind == 'field':
-      self.fieldCount += 1
-      return (self.fieldCount - 1)
-    
-    elif kind == 'OS':
-      return str(theType)
-    
-    return
+    def class_start(self) -> None:
+        """Reset class-level counters for a new class."""
+        self.field_count = 0
+        self.static_count = 0
 
-  def defineSubroutineTracker(self,name,theType,kind,voidinput):
-    # keep track of subroutines for later use
-    self.classSymbolTable.insert({'name' : name,'type': theType,'kind':kind,'#':self.addID(name,theType,kind),'void':voidinput}) 
+    def add_id(self, name: str, var_type: str, kind: str) -> Any:
+        """
+        Allocate an index for a new symbol.
 
-    return
+        Args:
+            name: The symbol name.
+            var_type: The type of the symbol.
+            kind: The kind (var, argument, static, field, OS).
 
-  # This will insert into the classSymbolTable
-  def define(self,name,theType,kind):
-    # each row is a hashTable or dictionary
-    # add the row to the symbolTable 
-    # insert hashtable (dictionary) into linked list
-    self.classSymbolTable.insert({'name' : name,'type': theType,'kind':kind,'#':self.addID(name,theType,kind)}) 
+        Returns:
+            The allocated index for the symbol.
+        """
+        if kind == 'var':
+            self.total_var_count += 1
+            return self.total_var_count - 1
+        elif var_type == 'method':
+            return self.argument_count
+        elif kind == 'argument':
+            self.argument_count += 1
+            return self.argument_count - 1
+        elif kind == 'static':
+            self.static_count += 1
+            return self.static_count - 1
+        elif kind == 'field':
+            self.field_count += 1
+            return self.field_count - 1
+        elif kind == 'OS':
+            return str(var_type)
+        return None
 
-    return
+    def define_subroutine_tracker(self, name: str, var_type: str,
+                                   kind: str, is_void: bool) -> None:
+        """Track a subroutine definition in the class symbol table."""
+        self.class_symbol_table.insert({
+            'name': name,
+            'type': var_type,
+            'kind': kind,
+            '#': self.add_id(name, var_type, kind),
+            'void': is_void
+        })
 
-  # This will insert into the method SymbolTable 
-  def defineMethod(self,name,theType,kind):
-    # each row is a hashTable or dictionary
-    # add the row to the symbolTable 
-    # insert hashtable (dictionary) into linked list
-    self.methodSymbolTable.insert({'name' : name,'type': theType,'kind':kind,'#':self.addID(name,theType,kind)}) 
+    def define(self, name: str, var_type: str, kind: str) -> None:
+        """Define a class-level symbol (field or static)."""
+        self.class_symbol_table.insert({
+            'name': name,
+            'type': var_type,
+            'kind': kind,
+            '#': self.add_id(name, var_type, kind)
+        })
 
-    return
+    def define_method(self, name: str, var_type: str, kind: str) -> None:
+        """Define a method-level symbol (argument or local var)."""
+        self.method_symbol_table.insert({
+            'name': name,
+            'type': var_type,
+            'kind': kind,
+            '#': self.add_id(name, var_type, kind)
+        })
 
-  def viewTableCST(self):
-    print('\n    ----------class  symbol table----------')
-    self.classSymbolTable.viewTable()
+    def view_table_cst(self) -> None:
+        """Print the class symbol table for debugging."""
+        print('\n    ----------class  symbol table----------')
+        self.class_symbol_table.view_table()
 
-  def viewTableMST(self):
-    print('\n    ----------method symbol table----------')
-    self.methodSymbolTable.viewTable()
+    def view_table_mst(self) -> None:
+        """Print the method symbol table for debugging."""
+        print('\n    ----------method symbol table----------')
+        self.method_symbol_table.view_table()
 
-  def lookAtEachRow(self):
-    self.classSymbolTable.transverse('x')
-    self.methodSymbolTable.transverse('x')
-    return
+    def look_at_each_row(self) -> None:
+        """Traverse both tables (for debugging)."""
+        self.class_symbol_table.traverse('x', '')
+        self.method_symbol_table.traverse('x', '')
 
-  def getKind(self,identifier):
-    itwashere = self.methodSymbolTable.transverse('kind',identifier)
-    if itwashere != None:
-      if itwashere == 'var':
-        return 'local'
-      elif itwashere == 'argument':
-        return 'argument'
-    else:
-      staticOrField = self.classSymbolTable.transverse('kind',identifier)
-      if staticOrField == 'static':
-        return 'static'
-      elif staticOrField == 'field':
-        return 'this'
-    
-    return 
-  
-  def getID(self,identifier):
-    itwashere = self.methodSymbolTable.transverse('#',identifier)
-    if itwashere != None:
-      return itwashere
-    else:
-      return self.classSymbolTable.transverse('#',identifier)
+    def get_kind(self, identifier: str) -> Optional[str]:
+        """
+        Get the segment kind for an identifier.
 
-  def getIDofClass(self,identifier,LookupclassName):
-    #itwashere = self.methodSymbolTable.transverseTwoInputs('#',identifier,LookupclassName)
-    #if itwashere != None:
-      #return itwashere
-    #else:
-    return self.classSymbolTable.transverseTwoInputs('#',identifier,LookupclassName)
-  
-  def getVoid(self,identifier,LookupclassName):
-    itwashere = self.methodSymbolTable.transverseTwoInputs('void',identifier,LookupclassName)
-    if itwashere != None:
-      return itwashere
-    else:
-      return self.classSymbolTable.transverseTwoInputs('void',identifier,LookupclassName)
+        Returns:
+            The VM segment: 'local', 'argument', 'static', 'this', or None.
+        """
+        result = self.method_symbol_table.traverse('kind', identifier)
+        if result is not None:
+            if result == 'var':
+                return 'local'
+            elif result == 'argument':
+                return 'argument'
+        else:
+            static_or_field = self.class_symbol_table.traverse('kind', identifier)
+            if static_or_field == 'static':
+                return 'static'
+            elif static_or_field == 'field':
+                return 'this'
+        return None
 
-  def getType(self,identifier):
-    itwashere = self.methodSymbolTable.transverse('type',identifier)
-    if itwashere != None:
-      return itwashere
-    else:
-      return self.classSymbolTable.transverse('type',identifier)
-  
-  def getTypeFromClass(self,identifier,LookupclassName):
-    itwashere = self.methodSymbolTable.transverseTwoInputs('type',identifier,LookupclassName)
-    if itwashere != None:
-      return itwashere
-    else:
-      return self.classSymbolTable.transverseTwoInputs('type',identifier,LookupclassName)
+    def get_id(self, identifier: str) -> Optional[int]:
+        """Get the index of an identifier in its segment."""
+        result = self.method_symbol_table.traverse('#', identifier)
+        if result is not None:
+            return result
+        return self.class_symbol_table.traverse('#', identifier)
+
+    def get_id_of_class(self, identifier: str,
+                        lookup_class_name: str) -> Optional[int]:
+        """Get the index for an identifier within a specific class."""
+        return self.class_symbol_table.traverse_two_inputs(
+            '#', identifier, lookup_class_name)
+
+    def get_void(self, identifier: str,
+                 lookup_class_name: str) -> Optional[bool]:
+        """Check if a subroutine returns void."""
+        result = self.method_symbol_table.traverse_two_inputs(
+            'void', identifier, lookup_class_name)
+        if result is not None:
+            return result
+        return self.class_symbol_table.traverse_two_inputs(
+            'void', identifier, lookup_class_name)
+
+    def get_type(self, identifier: str) -> Optional[str]:
+        """Get the type of an identifier."""
+        result = self.method_symbol_table.traverse('type', identifier)
+        if result is not None:
+            return result
+        return self.class_symbol_table.traverse('type', identifier)
+
+    def get_type_from_class(self, identifier: str,
+                            lookup_class_name: str) -> Optional[str]:
+        """Get the type of an identifier within a specific class."""
+        result = self.method_symbol_table.traverse_two_inputs(
+            'type', identifier, lookup_class_name)
+        if result is not None:
+            return result
+        return self.class_symbol_table.traverse_two_inputs(
+            'type', identifier, lookup_class_name)
+
+    # Backwards compatibility aliases
+    startSubroutine = start_subroutine
+    classStart = class_start
+    varCount = var_count
+    addID = add_id
+    defineSubroutineTracker = define_subroutine_tracker
+    defineMethod = define_method
+    viewTableCST = view_table_cst
+    viewTableMST = view_table_mst
+    lookAtEachRow = look_at_each_row
+    getKind = get_kind
+    getID = get_id
+    getIDofClass = get_id_of_class
+    getVoid = get_void
+    getType = get_type
+    getTypeFromClass = get_type_from_class
