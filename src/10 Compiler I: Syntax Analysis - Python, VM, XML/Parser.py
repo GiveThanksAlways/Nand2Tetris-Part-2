@@ -1,482 +1,445 @@
+"""
+Parser module for Jack language syntax analysis.
+
+This module provides the Parser class that parses tokenized Jack source code
+and generates an XML parse tree according to the Jack grammar.
+"""
+
+from typing import List, TextIO
+
+
+# Statement keywords for checking statement types
+STATEMENT_KEYWORDS: List[str] = [
+    '<keyword> if </keyword>\n',
+    '<keyword> let </keyword>\n',
+    '<keyword> while </keyword>\n',
+    '<keyword> do </keyword>\n',
+    '<keyword> return </keyword>\n'
+]
+
+# Operator symbols for expression parsing
+OPERATOR_SYMBOLS: List[str] = [
+    '<symbol> + </symbol>\n',
+    '<symbol> - </symbol>\n',
+    '<symbol> * </symbol>\n',
+    '<symbol> / </symbol>\n',
+    '<symbol> &amp; </symbol>\n',
+    '<symbol> | </symbol>\n',
+    '<symbol> &lt; </symbol>\n',
+    '<symbol> &gt; </symbol>\n',
+    '<symbol> = </symbol>\n'
+]
+
+# Keyword constants for term parsing
+KEYWORD_CONSTANTS: List[str] = [
+    '<keyword> true </keyword>\n',
+    '<keyword> false </keyword>\n',
+    '<keyword> null </keyword>\n',
+    '<keyword> this </keyword>\n'
+]
+
+
 class Parser:
-  def __init__(self, parserInput, parserOutput):
-    
-    self.tTp = [] #tokens to parse array aka tTp
-    self.tTpcopy = [] #copy to help remove stuff
-    self.tokenCounter = 0
-    self.indent = 0
+    """
+    Parser for Jack language that generates XML parse tree from tokens.
 
-    # open the input.xml file made by the tokenizer (full of tokens ready to parse)
-    with open(parserInput) as f:
-      for line in f:
-        self.tTpcopy.append(line)
-    
-    
-    self.tTp = self.tTpcopy[1:-1] # remove unwanted stuff from copy
-    self.output1 = open(parserOutput, 'w') #output to write to
-    self.currentTokenArr = self.tTp[self.tokenCounter].split(' ')
-    self.currentToken = self.tTp[self.tokenCounter] # first token
-    self.compileClass() # start compiling
+    Reads tokenized XML input and produces a structured XML parse tree
+    following the Jack grammar specification.
+    """
 
-    self.output1.close() # close the file when done
-    
-# compile the class
-  def compileClass(self):
-    self.output1.write('<class>'+'\n')
-    self.increaseIndent()
-    self.writeAdv() 
-    self.writeAdv()
-    self.writeAdv()
+    def __init__(self, input_file: str, output_file: str) -> None:
+        """
+        Initialize the parser and start compilation.
 
+        Args:
+            input_file: Path to the tokenized XML input file.
+            output_file: Path for the output parse tree XML file.
+        """
+        self.tokens: List[str] = []
+        self.token_counter: int = 0
+        self.indent_level: int = 0
 
-    self.compileClassVarDec()
-    self.compileSubroutine()
-    self.outIndent()
-    self.output1.write(self.currentToken)
-    self.output1.write('</class>'+'\n')
-    
-    return 
+        # Read tokens from input file
+        tokens_raw: List[str] = []
+        with open(input_file) as f:
+            for line in f:
+                tokens_raw.append(line)
 
-  def compileClassVarDec(self):
-    
+        # Remove <tokens> wrapper tags
+        self.tokens = tokens_raw[1:-1]
+        self.output: TextIO = open(output_file, 'w')
+        self.current_token: str = self.tokens[self.token_counter]
 
-    if str(self.currentToken) == '<keyword> field </keyword>\n' or str(self.currentToken) == '<keyword> static </keyword>\n':
-      self.outIndent()
-      self.output1.write('<classVarDec>\n')
-      self.increaseIndent()
-      # while loop takes care of (varName)*
-      while str(self.currentToken) != '<symbol> ; </symbol>\n':
-        self.writeAdv() 
-      self.writeAdv() # ')'
+        # Start compilation
+        self._compile_class()
+        self.output.close()
 
-      self.decreaseIndent()
-      self.outIndent()
-      self.output1.write('</classVarDec>\n')
-    # recursion: check if more, then call itself again
-    if str(self.currentToken) == '<keyword> field </keyword>\n' or str(self.currentToken) == '<keyword> static </keyword>\n':
-      self.compileClassVarDec()
-    return
+    def _compile_class(self) -> None:
+        """Compile a complete class definition."""
+        self.output.write('<class>\n')
+        self._increase_indent()
+        self._write_and_advance()  # 'class'
+        self._write_and_advance()  # className
+        self._write_and_advance()  # '{'
 
-  def compileSubroutine(self):
-    self.outIndent()
-    self.output1.write('<subroutineDec>\n')
-    self.increaseIndent()
-    #while str(self.currentToken) != '<symbol> ( </symbol>\n':
-    self.writeAdv() # constructor|function|method
-    self.writeAdv() # void|type
-    self.writeAdv() # subroutineName
-    self.writeAdv() # '('
-    # if identifier is there, then compileParameterList
-    #daToken = str(self.currentToken.split()[0]) # first xml 
-    
-    #if daToken == '<identifier>':
-    self.compileParameterList()
-    #else:
-    self.writeAdv() # ')' for empty parameterlist
+        self._compile_class_var_dec()
+        self._compile_subroutine()
 
-    self.outIndent()
-    self.output1.write('<subroutineBody>\n')
-    self.increaseIndent()
-    self.writeAdv() # print the {
+        self._write_indent()
+        self.output.write(self.current_token)  # '}'
+        self.output.write('</class>\n')
 
-    # compile all of the varDecs first
-    if str(self.currentToken) == '<keyword> var </keyword>\n':
-      self.compileVarDec()
-        
-    # enter statements and statements calls itself recursively
-    self.compileStatements()  
-     
-    self.writeAdv() # } ending the subroutineBody
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</subroutineBody>\n')
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</subroutineDec>\n')
+    def _compile_class_var_dec(self) -> None:
+        """Compile class variable declarations (field/static)."""
+        if self.current_token in ('<keyword> field </keyword>\n',
+                                   '<keyword> static </keyword>\n'):
+            self._write_indent()
+            self.output.write('<classVarDec>\n')
+            self._increase_indent()
 
-    # recusion part
-    # check if more subroutines
-    # if constructor|function|method then we compileSubroutine
-    if str(self.currentToken) == '<keyword> constructor </keyword>\n':
-      self.compileSubroutine()
-    elif str(self.currentToken) == '<keyword> function </keyword>\n':
-      self.compileSubroutine()
-    elif str(self.currentToken) == '<keyword> method </keyword>\n':
-      self.compileSubroutine()
+            # Process until semicolon
+            while self.current_token != '<symbol> ; </symbol>\n':
+                self._write_and_advance()
+            self._write_and_advance()  # ';'
 
-    return
+            self._decrease_indent()
+            self._write_indent()
+            self.output.write('</classVarDec>\n')
 
-  def compileParameterList(self):
-    self.outIndent()
-    self.output1.write('<parameterList>\n')
-    self.increaseIndent()
+        # Recursively check for more declarations
+        if self.current_token in ('<keyword> field </keyword>\n',
+                                   '<keyword> static </keyword>\n'):
+            self._compile_class_var_dec()
 
-    while str(self.currentToken) != '<symbol> ) </symbol>\n':
-      self.writeAdv()
-    
-    
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</parameterList>\n')
-    return
+    def _compile_subroutine(self) -> None:
+        """Compile a subroutine declaration (constructor/function/method)."""
+        self._write_indent()
+        self.output.write('<subroutineDec>\n')
+        self._increase_indent()
 
-  def compileVarDec(self):
-    
-    self.outIndent()
-    self.output1.write('<varDec>\n')
-    self.increaseIndent()
+        self._write_and_advance()  # constructor|function|method
+        self._write_and_advance()  # void|type
+        self._write_and_advance()  # subroutineName
+        self._write_and_advance()  # '('
 
-    while str(self.currentToken) != '<symbol> ; </symbol>\n':
-      self.writeAdv()
-      
-    self.writeAdv()
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</varDec>\n')
+        self._compile_parameter_list()
+        self._write_and_advance()  # ')'
 
-    if str(self.currentToken) == '<keyword> var </keyword>\n':
-      self.compileVarDec()
-    return
+        self._write_indent()
+        self.output.write('<subroutineBody>\n')
+        self._increase_indent()
+        self._write_and_advance()  # '{'
 
-  def compileStatements(self):
-    self.outIndent()
-    self.output1.write('<statements>\n')
-    self.increaseIndent()
+        # Compile variable declarations
+        if self.current_token == '<keyword> var </keyword>\n':
+            self._compile_var_dec()
 
-    
-    # change to while to check if next guy is statement
-    while self.checkStatement():
-      if str(self.currentToken) == '<keyword> if </keyword>\n':
-        self.compileIf()
-      elif str(self.currentToken) == '<keyword> let </keyword>\n':
-        self.compileLet()
-      elif str(self.currentToken) == '<keyword> while </keyword>\n':
-        self.compileWhile()
-      elif str(self.currentToken) == '<keyword> do </keyword>\n':
-        self.compileDo()
-      elif str(self.currentToken) == '<keyword> return </keyword>\n':
-        self.compileReturn()
+        self._compile_statements()
+        self._write_and_advance()  # '}'
 
-    
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</statements>\n')
-    return
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</subroutineBody>\n')
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</subroutineDec>\n')
 
-  def compileDo(self):
-    self.outIndent()
-    self.output1.write('<doStatement>\n')
-    self.increaseIndent()
+        # Check for more subroutines
+        if self.current_token in ('<keyword> constructor </keyword>\n',
+                                   '<keyword> function </keyword>\n',
+                                   '<keyword> method </keyword>\n'):
+            self._compile_subroutine()
 
-    self.writeAdv() # 'do'
-    # subroutineCall which is a term, inside of an expression
-    
-    # LL(2) grammar part. 
-    # look ahead one token to see if ( or . for two types of subroutine calls
-    lookAhead = self.tTp[self.tokenCounter+1]
-    if lookAhead == '<symbol> ( </symbol>\n':
-      self.writeAdv() # subroutineName wrapped in identifier tags
-      self.writeAdv() # '('
-      self.compileExpressionList()
-      self.writeAdv() # ')'
-      self.writeAdv() # ';'
+    def _compile_parameter_list(self) -> None:
+        """Compile a parameter list for a subroutine."""
+        self._write_indent()
+        self.output.write('<parameterList>\n')
+        self._increase_indent()
 
-    else:
-      # subroutineName
-      self.writeAdv() # className|varName
-      self.writeAdv() # '.'
-      self.writeAdv() # subroutineName
-      self.writeAdv() # '('
-      self.compileExpressionList()
-      self.writeAdv() # ')'
-      self.writeAdv() # ';'
-    
+        while self.current_token != '<symbol> ) </symbol>\n':
+            self._write_and_advance()
 
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</doStatement>\n')
-    return
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</parameterList>\n')
 
-  def compileLet(self):
-    self.outIndent()
-    self.output1.write('<letStatement>\n')
-    self.increaseIndent()
+    def _compile_var_dec(self) -> None:
+        """Compile a local variable declaration."""
+        self._write_indent()
+        self.output.write('<varDec>\n')
+        self._increase_indent()
 
-    self.writeAdv() # 'let'
-    self.writeAdv() # varName
-    #check if [] brackets are there or not 
-    if str(self.currentToken) == '<symbol> [ </symbol>\n':
-      self.writeAdv() # [
-      self.compileExpression()
-      self.writeAdv() # ]
-    self.writeAdv() # '=' 
-    self.compileExpression()
-    self.writeAdv() # ';'
+        while self.current_token != '<symbol> ; </symbol>\n':
+            self._write_and_advance()
 
+        self._write_and_advance()  # ';'
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</varDec>\n')
 
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</letStatement>\n')
-    return
+        # Recursively check for more var declarations
+        if self.current_token == '<keyword> var </keyword>\n':
+            self._compile_var_dec()
 
-  def compileWhile(self):
-    self.outIndent()
-    self.output1.write('<whileStatement>\n')
-    self.increaseIndent()
+    def _compile_statements(self) -> None:
+        """Compile a sequence of statements."""
+        self._write_indent()
+        self.output.write('<statements>\n')
+        self._increase_indent()
 
-    self.writeAdv() # 'while'
-    self.writeAdv() # (
-    self.compileExpression()
-    self.writeAdv() # )
-    self.writeAdv() # {
-    self.compileStatements()
-    self.writeAdv() # }
+        while self._is_statement():
+            if self.current_token == '<keyword> if </keyword>\n':
+                self._compile_if()
+            elif self.current_token == '<keyword> let </keyword>\n':
+                self._compile_let()
+            elif self.current_token == '<keyword> while </keyword>\n':
+                self._compile_while()
+            elif self.current_token == '<keyword> do </keyword>\n':
+                self._compile_do()
+            elif self.current_token == '<keyword> return </keyword>\n':
+                self._compile_return()
 
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</statements>\n')
 
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</whileStatement>\n')
-    return
+    def _compile_do(self) -> None:
+        """Compile a do statement (subroutine call)."""
+        self._write_indent()
+        self.output.write('<doStatement>\n')
+        self._increase_indent()
 
-  def compileReturn(self):
-    self.outIndent()
-    self.output1.write('<returnStatement>\n')
-    self.increaseIndent()
+        self._write_and_advance()  # 'do'
 
-    self.writeAdv() # print return 
-    # if expression compile that as well
-    if self.checkMoreTerms():
-      self.compileExpression()
-    self.writeAdv() # ;
+        # LL(2) lookahead for subroutine call type
+        lookahead = self.tokens[self.token_counter + 1]
+        if lookahead == '<symbol> ( </symbol>\n':
+            self._write_and_advance()  # subroutineName
+            self._write_and_advance()  # '('
+            self._compile_expression_list()
+            self._write_and_advance()  # ')'
+            self._write_and_advance()  # ';'
+        else:
+            self._write_and_advance()  # className|varName
+            self._write_and_advance()  # '.'
+            self._write_and_advance()  # subroutineName
+            self._write_and_advance()  # '('
+            self._compile_expression_list()
+            self._write_and_advance()  # ')'
+            self._write_and_advance()  # ';'
 
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</returnStatement>\n')
-    return
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</doStatement>\n')
 
-  def compileIf(self):
-    self.outIndent()
-    self.output1.write('<ifStatement>\n')
-    self.increaseIndent()
+    def _compile_let(self) -> None:
+        """Compile a let statement (variable assignment)."""
+        self._write_indent()
+        self.output.write('<letStatement>\n')
+        self._increase_indent()
 
-    self.writeAdv() # 'if'
-    self.writeAdv() # '('
-    self.compileExpression()
-    self.writeAdv() # ')'
-    self.writeAdv() # '{'
-    self.compileStatements()
-    self.writeAdv() # '}'
-    # check if else statment is there 
-    if str(self.currentToken) == '<keyword> else </keyword>\n':
-      self.writeAdv() # 'else'
-      self.writeAdv() # '{'
-      self.compileStatements()
-      self.writeAdv() # '}'
-    
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</ifStatement>\n')
-    return
+        self._write_and_advance()  # 'let'
+        self._write_and_advance()  # varName
 
-  def compileExpression(self):
-    # begging of expression so add indent to parse tree
-    self.outIndent()
-    self.output1.write('<expression>\n')
-    self.increaseIndent()
+        # Check for array indexing
+        if self.current_token == '<symbol> [ </symbol>\n':
+            self._write_and_advance()  # '['
+            self._compile_expression()
+            self._write_and_advance()  # ']'
 
-    # compile term calls itself recursively to take care of multiple terms ie. term (op term)*
-    self.compileTerm()
-    
-    # expression is over, no more terms, decrease the indent
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</expression>\n')
-    return
+        self._write_and_advance()  # '='
+        self._compile_expression()
+        self._write_and_advance()  # ';'
 
-  def compileTerm(self):
-    self.outIndent()
-    self.output1.write('<term>\n')
-    self.increaseIndent()
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</letStatement>\n')
 
-    # da first part of the token
-    daToken = str(self.currentToken.split()[0])
+    def _compile_while(self) -> None:
+        """Compile a while statement."""
+        self._write_indent()
+        self.output.write('<whileStatement>\n')
+        self._increase_indent()
 
-    # check which type of term to compile
-    if daToken == '<identifier>':
-      lookAhead = self.tTp[self.tokenCounter+1]
-      if lookAhead == '<symbol> [ </symbol>\n':
-        self.writeAdv() # write the identifier varName
-        self.writeAdv() # the [
-        self.compileExpression()
-        self.writeAdv() # the ]
-      elif lookAhead == '<symbol> ( </symbol>\n':
-        self.writeAdv() # subroutineName wrapped in identifier tags
-        self.writeAdv() # '('
-        self.compileExpressionList()
-        self.writeAdv() # ')'
-      elif lookAhead == '<symbol> . </symbol>\n':
-        # subroutineName
-        self.writeAdv() # className|varName
-        self.writeAdv() # '.'
-        self.writeAdv() # subroutineName
-        self.writeAdv() # '('
-        self.compileExpressionList()
-        self.writeAdv() # ')'
-      else:
-        self.writeAdv() # just a varName
-    elif daToken == '<integerConstant>':
-      self.writeAdv()
-    elif daToken == '<stringConstant>':
-      self.writeAdv()
-    elif str(self.currentToken) == '<keyword> true </keyword>\n':
-      self.writeAdv()
-    elif str(self.currentToken) == '<keyword> false </keyword>\n':
-      self.writeAdv()
-    elif str(self.currentToken) == '<keyword> null </keyword>\n':
-      self.writeAdv()
-    elif str(self.currentToken) == '<keyword> this </keyword>\n':
-      self.writeAdv()
-    elif str(self.currentToken) == '<symbol> ( </symbol>\n':
-      self.writeAdv() # for (
-      self.compileExpression()
-      self.writeAdv() # for )
-    elif str(self.currentToken) == '<symbol> - </symbol>\n':
-      self.writeAdv()
-      self.compileTerm()
-    elif str(self.currentToken) == '<symbol> ~ </symbol>\n':
-      self.writeAdv()
-      self.compileTerm()
-    
-    
-    # end of term decrease indent
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</term>\n')
+        self._write_and_advance()  # 'while'
+        self._write_and_advance()  # '('
+        self._compile_expression()
+        self._write_and_advance()  # ')'
+        self._write_and_advance()  # '{'
+        self._compile_statements()
+        self._write_and_advance()  # '}'
 
-    # check for op and then use recursion
-    if self.checkOp():
-      self.writeAdv() # write the op term
-      self.compileTerm()
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</whileStatement>\n')
 
-    #check if another term using recursion
-    #if self.checkMoreTerms():
-      #self.compileTerm()
+    def _compile_return(self) -> None:
+        """Compile a return statement."""
+        self._write_indent()
+        self.output.write('<returnStatement>\n')
+        self._increase_indent()
 
-    return
+        self._write_and_advance()  # 'return'
 
-  def compileExpressionList(self):
-    self.outIndent()
-    self.output1.write('<expressionList>\n')
-    self.increaseIndent()
+        # Check for return expression
+        if self._has_more_terms():
+            self._compile_expression()
+        self._write_and_advance()  # ';'
 
-    
-    # check if 
-    while self.checkMoreTerms():
-      # actually compile an expression if not empty
-      #print(self.currentToken)
-      self.compileExpression()
-      if str(self.currentToken) == '<symbol> , </symbol>\n':
-        self.writeAdv() # ','
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</returnStatement>\n')
 
-    self.decreaseIndent()
-    self.outIndent()
-    self.output1.write('</expressionList>\n')
-    return
+    def _compile_if(self) -> None:
+        """Compile an if statement with optional else clause."""
+        self._write_indent()
+        self.output.write('<ifStatement>\n')
+        self._increase_indent()
 
-  def outIndent(self):
-    for i in range(self.indent):
-      # change be careful below was old
-      #self.output1.write('\t')
-      self.output1.write('  ')
-    return
+        self._write_and_advance()  # 'if'
+        self._write_and_advance()  # '('
+        self._compile_expression()
+        self._write_and_advance()  # ')'
+        self._write_and_advance()  # '{'
+        self._compile_statements()
+        self._write_and_advance()  # '}'
 
-  def advance(self):
-    self.tokenCounter += 1
-    self.currentToken = self.tTp[self.tokenCounter]
+        # Check for else clause
+        if self.current_token == '<keyword> else </keyword>\n':
+            self._write_and_advance()  # 'else'
+            self._write_and_advance()  # '{'
+            self._compile_statements()
+            self._write_and_advance()  # '}'
 
-  def writeAdv(self):
-    self.outIndent()
-    self.output1.write(self.currentToken)
-    self.advance()
-    return
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</ifStatement>\n')
 
-  def increaseIndent(self):
-    self.indent += 1
-    return
+    def _compile_expression(self) -> None:
+        """Compile an expression (term (op term)*)."""
+        self._write_indent()
+        self.output.write('<expression>\n')
+        self._increase_indent()
 
-  def decreaseIndent(self):
-    self.indent -= 1
-    return
+        self._compile_term()
 
-  def checkStatement(self):
-    if str(self.currentToken) == '<keyword> if </keyword>\n':
-      return True
-    elif str(self.currentToken) == '<keyword> let </keyword>\n':
-      return True
-    elif str(self.currentToken) == '<keyword> while </keyword>\n':
-      return True
-    elif str(self.currentToken) == '<keyword> do </keyword>\n':
-      return True
-    elif str(self.currentToken) == '<keyword> return </keyword>\n':
-      return True
-    else:
-      return False
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</expression>\n')
 
-  def checkOp(self):
-    if str(self.currentToken) == '<symbol> + </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> - </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> * </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> / </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> &amp; </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> | </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> &lt; </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> &gt; </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> = </symbol>\n':
-      return True
-    else:
-      return False
+    def _compile_term(self) -> None:
+        """Compile a term in an expression."""
+        self._write_indent()
+        self.output.write('<term>\n')
+        self._increase_indent()
 
-  def checkMoreTerms(self):
+        token_type = self.current_token.split()[0]
 
-    daToken = str(self.currentToken.split()[0])
+        if token_type == '<identifier>':
+            lookahead = self.tokens[self.token_counter + 1]
+            if lookahead == '<symbol> [ </symbol>\n':
+                self._write_and_advance()  # varName
+                self._write_and_advance()  # '['
+                self._compile_expression()
+                self._write_and_advance()  # ']'
+            elif lookahead == '<symbol> ( </symbol>\n':
+                self._write_and_advance()  # subroutineName
+                self._write_and_advance()  # '('
+                self._compile_expression_list()
+                self._write_and_advance()  # ')'
+            elif lookahead == '<symbol> . </symbol>\n':
+                self._write_and_advance()  # className|varName
+                self._write_and_advance()  # '.'
+                self._write_and_advance()  # subroutineName
+                self._write_and_advance()  # '('
+                self._compile_expression_list()
+                self._write_and_advance()  # ')'
+            else:
+                self._write_and_advance()  # varName
+        elif token_type == '<integerConstant>':
+            self._write_and_advance()
+        elif token_type == '<stringConstant>':
+            self._write_and_advance()
+        elif self.current_token in KEYWORD_CONSTANTS:
+            self._write_and_advance()
+        elif self.current_token == '<symbol> ( </symbol>\n':
+            self._write_and_advance()  # '('
+            self._compile_expression()
+            self._write_and_advance()  # ')'
+        elif self.current_token in ('<symbol> - </symbol>\n',
+                                     '<symbol> ~ </symbol>\n'):
+            self._write_and_advance()  # unary operator
+            self._compile_term()
 
-    if daToken == '<identifier>':
-      lookAhead = self.tTp[self.tokenCounter+1]
-      if lookAhead == '<symbol> [ </symbol>\n':
-        return True
-      elif lookAhead == '<symbol> ( </symbol>\n':
-        return True
-      elif lookAhead == '<symbol> . </symbol>\n':
-        return True
-      else:
-        return True
-    elif daToken == '<integerConstant>':
-      return True
-    elif daToken == '<stringConstant>':
-      return True
-    elif str(self.currentToken) == '<keyword> true </keyword>\n':
-      return True
-    elif str(self.currentToken) == '<keyword> false </keyword>\n':
-      return True
-    elif str(self.currentToken) == '<keyword> null </keyword>\n':
-      return True
-    elif str(self.currentToken) == '<keyword> this </keyword>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> ( </symbol>\n':
-      return True
-      #check unary Op
-    elif str(self.currentToken) == '<symbol> - </symbol>\n':
-      return True
-    elif str(self.currentToken) == '<symbol> ~ </symbol>\n':
-      return True
-    else:
-      return False
-    
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</term>\n')
+
+        # Check for operator and additional terms
+        if self._is_operator():
+            self._write_and_advance()  # operator
+            self._compile_term()
+
+    def _compile_expression_list(self) -> None:
+        """Compile a comma-separated list of expressions."""
+        self._write_indent()
+        self.output.write('<expressionList>\n')
+        self._increase_indent()
+
+        while self._has_more_terms():
+            self._compile_expression()
+            if self.current_token == '<symbol> , </symbol>\n':
+                self._write_and_advance()  # ','
+
+        self._decrease_indent()
+        self._write_indent()
+        self.output.write('</expressionList>\n')
+
+    def _write_indent(self) -> None:
+        """Write indentation to output based on current indent level."""
+        self.output.write('  ' * self.indent_level)
+
+    def _advance(self) -> None:
+        """Advance to the next token."""
+        self.token_counter += 1
+        self.current_token = self.tokens[self.token_counter]
+
+    def _write_and_advance(self) -> None:
+        """Write current token with indentation and advance to next."""
+        self._write_indent()
+        self.output.write(self.current_token)
+        self._advance()
+
+    def _increase_indent(self) -> None:
+        """Increase indentation level."""
+        self.indent_level += 1
+
+    def _decrease_indent(self) -> None:
+        """Decrease indentation level."""
+        self.indent_level -= 1
+
+    def _is_statement(self) -> bool:
+        """Check if current token is a statement keyword."""
+        return self.current_token in STATEMENT_KEYWORDS
+
+    def _is_operator(self) -> bool:
+        """Check if current token is an operator."""
+        return self.current_token in OPERATOR_SYMBOLS
+
+    def _has_more_terms(self) -> bool:
+        """Check if current token can start a term."""
+        token_type = self.current_token.split()[0]
+
+        if token_type == '<identifier>':
+            return True
+        if token_type in ('<integerConstant>', '<stringConstant>'):
+            return True
+        if self.current_token in KEYWORD_CONSTANTS:
+            return True
+        if self.current_token == '<symbol> ( </symbol>\n':
+            return True
+        if self.current_token in ('<symbol> - </symbol>\n',
+                                   '<symbol> ~ </symbol>\n'):
+            return True
+        return False
+
