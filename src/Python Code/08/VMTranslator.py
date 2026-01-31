@@ -270,7 +270,7 @@ def write_return() -> None:
         '@R13', 'A=M-1', 'A=A-1', 'D=M', '@THIS', 'M=D',
         '@R13', 'A=M-1', 'A=A-1', 'A=A-1', 'D=M', '@ARG', 'M=D',
         '@R13', 'A=M-1', 'A=A-1', 'A=A-1', 'A=A-1', 'D=M', '@LCL', 'M=D',
-        '@14', 'A=M', '0;JMP'
+        '@R14', 'A=M', '0;JMP'
     ])
 
 
